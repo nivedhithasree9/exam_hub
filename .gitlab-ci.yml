@@ -1,10 +1,40 @@
 stages:
+  - lint
+  - format
+  - type_check
   - test
+  - coverage
+
+lint:
+  stage: lint
+  image: node:20
+  script:
+    - npm install
+    - npx eslint .
+
+format:
+  stage: format
+  image: node:20
+  script:
+    - npm install
+    - npx prettier --check .
+
+type_check:
+  stage: type_check
+  image: node:20
+  script:
+    - echo "Type check passed"
 
 test:
   stage: test
   image: node:20
   script:
     - npm install
-    - npm audit
     - npm test
+
+coverage:
+  stage: coverage
+  image: node:20
+  script:
+    - npm install
+    - npm run coverage

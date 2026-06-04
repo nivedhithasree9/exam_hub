@@ -6,3 +6,15 @@ repos:
         entry: npx eslint .
         language: system
         pass_filenames: false
+
+      - id: prettier
+        name: prettier
+        entry: npx prettier --check .
+        language: system
+        pass_filenames: false
+
+      - id: gitleaks
+        name: gitleaks
+        entry: gitleaks detect
+        language: system
+        pass_filenames: false
