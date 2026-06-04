@@ -1,0 +1,5 @@
+title = "Exam Hub Security Scan"
+
+[allowlist]
+description = "allowed files"
+paths = []
