@@ -8,7 +8,14 @@
     "sequelize": "^6.32.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.16",
     "eslint": "^10.4.1",
+    "husky": "^9.1.7",
+    "knip": "^6.15.0",
     "prettier": "^3.8.3"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "test": "echo No tests yet"
   }
 }
