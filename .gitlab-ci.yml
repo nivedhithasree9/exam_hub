@@ -23,7 +23,8 @@ type_check:
   stage: type_check
   image: node:20
   script:
-    - echo "Type check passed"
+    - npm install
+    - npx tsc --noEmit
 
 test:
   stage: test

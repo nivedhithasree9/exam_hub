@@ -18,3 +18,8 @@ repos:
         entry: gitleaks detect
         language: system
         pass_filenames: false
+              - id: typescript
+        name: typescript
+        entry: npx tsc --noEmit
+        language: system
+        pass_filenames: false
