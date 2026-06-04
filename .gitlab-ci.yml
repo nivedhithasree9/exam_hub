@@ -3,6 +3,7 @@ stages:
   - format
   - type_check
   - test
+  - security
   - coverage
 
 lint:
@@ -39,3 +40,9 @@ coverage:
   script:
     - npm install
     - npm run coverage
+    security:
+  stage: security
+  image: node:20
+  script:
+    - npm install
+    - npm audit

@@ -25,6 +25,7 @@
     "coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
     "biome": "biome check .",
-    "audit": "npm audit"
+    "audit": "npm audit",
+    "lint:biome": "biome check ."
   }
 }
