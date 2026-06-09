@@ -145,7 +145,11 @@ BASE_EXAMS = [
         "category": "Engineering",
         "description": "Postgraduate engineering entrance and PSU recruitment exam.",
         "eligibility": "Engineering, science, architecture, or relevant degree students/graduates.",
-        "syllabus": ["Core engineering subject", "Engineering Mathematics", "General Aptitude"],
+        "syllabus": [
+            "Core engineering subject",
+            "Engineering Mathematics",
+            "General Aptitude",
+        ],
         "pattern": "Computer-based test with MCQ, MSQ, and numerical answer questions.",
         "books": [
             "Core Subject: Made Easy GATE study package",
@@ -231,7 +235,12 @@ BASE_EXAMS = [
         "fee": "Varies by category; many categories are exempt",
         "officialWebsite": "https://upsc.gov.in",
         "useFor": "Recruitment to IAS, IPS, IFS, IRS, and other central services.",
-        "selectionProcess": ["Preliminary exam", "Main examination", "Personality test", "Final merit list"],
+        "selectionProcess": [
+            "Preliminary exam",
+            "Main examination",
+            "Personality test",
+            "Final merit list",
+        ],
         "preparationTips": [
             "Read NCERTs and standard books",
             "Follow current affairs",
@@ -244,7 +253,12 @@ BASE_EXAMS = [
         "category": "Government",
         "description": "Graduate level recruitment for central government ministries and departments.",
         "eligibility": "Graduation from a recognized university.",
-        "syllabus": ["Quantitative Aptitude", "Reasoning", "English", "General Awareness"],
+        "syllabus": [
+            "Quantitative Aptitude",
+            "Reasoning",
+            "English",
+            "General Awareness",
+        ],
         "pattern": "Tiered computer-based examinations.",
         "books": [
             "Quantitative Aptitude: R.S. Aggarwal or Kiran SSC Maths",
@@ -261,7 +275,12 @@ BASE_EXAMS = [
         "fee": "Varies by category; many categories are exempt",
         "officialWebsite": "https://ssc.gov.in",
         "useFor": "Central government Group B and Group C posts.",
-        "selectionProcess": ["Tier I", "Tier II", "Document verification", "Final allocation"],
+        "selectionProcess": [
+            "Tier I",
+            "Tier II",
+            "Document verification",
+            "Final allocation",
+        ],
         "preparationTips": [
             "Practice arithmetic daily",
             "Revise current affairs",
@@ -274,7 +293,12 @@ BASE_EXAMS = [
         "category": "Banking",
         "description": "Probationary Officer recruitment exam for public sector banks.",
         "eligibility": "Graduation from a recognized university.",
-        "syllabus": ["Reasoning", "Quantitative Aptitude", "English", "Banking Awareness"],
+        "syllabus": [
+            "Reasoning",
+            "Quantitative Aptitude",
+            "English",
+            "Banking Awareness",
+        ],
         "pattern": "Prelims, Mains, and Interview.",
         "books": [
             "Banking Awareness: Arihant Banking Awareness",
@@ -291,7 +315,12 @@ BASE_EXAMS = [
         "fee": "Varies by category",
         "officialWebsite": "https://www.ibps.in",
         "useFor": "Probationary Officer recruitment in public sector banks.",
-        "selectionProcess": ["Preliminary exam", "Main exam", "Interview", "Provisional allotment"],
+        "selectionProcess": [
+            "Preliminary exam",
+            "Main exam",
+            "Interview",
+            "Provisional allotment",
+        ],
         "preparationTips": [
             "Practice speed maths",
             "Read banking awareness",
@@ -327,7 +356,12 @@ BASE_EXAMS = [
         "fee": "Varies by category",
         "officialWebsite": "https://consortiumofnlus.ac.in",
         "useFor": "Admission to law programs at National Law Universities.",
-        "selectionProcess": ["Apply online", "Appear for CLAT", "Check rank", "Participate in NLU counselling"],
+        "selectionProcess": [
+            "Apply online",
+            "Appear for CLAT",
+            "Check rank",
+            "Participate in NLU counselling",
+        ],
         "preparationTips": [
             "Read editorials daily",
             "Practice legal reasoning passages",
@@ -1138,7 +1172,11 @@ def load_exams():
 
 
 def matches_filters(exam, query, category):
-    query_matches = not query or query in exam["name"].lower() or query in exam["description"].lower()
+    query_matches = (
+        not query
+        or query in exam["name"].lower()
+        or query in exam["description"].lower()
+    )
     category_matches = category == "All categories" or exam["category"] == category
     return query_matches and category_matches
 
@@ -1221,7 +1259,9 @@ def main():
 
     with st.sidebar:
         st.header("Filters")
-        query = st.text_input("Search exams", placeholder="NEET, UPSC, JEE").strip().lower()
+        query = (
+            st.text_input("Search exams", placeholder="NEET, UPSC, JEE").strip().lower()
+        )
         category = st.selectbox("Category", categories)
         st.metric("Total exams", len(exams))
         st.metric("Categories", len(categories) - 1)
@@ -1235,7 +1275,9 @@ def main():
 
     exam_names = [exam["name"] for exam in filtered_exams]
     selected_name = st.selectbox("Choose an exam", exam_names)
-    selected_exam = next(exam for exam in filtered_exams if exam["name"] == selected_name)
+    selected_exam = next(
+        exam for exam in filtered_exams if exam["name"] == selected_name
+    )
 
     render_exam_details(selected_exam)
 

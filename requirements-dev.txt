@@ -1,0 +1,8 @@
+ruff
+mypy
+bandit
+vulture
+pyupgrade
+pre-commit
+pytest
+pytest-cov
