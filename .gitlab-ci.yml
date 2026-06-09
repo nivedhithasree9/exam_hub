@@ -6,6 +6,7 @@ stages:
   - type_check
   - test
   - coverage
+  - security
 
 before_script:
   - npm install
@@ -23,7 +24,7 @@ format:
 type_check:
   stage: type_check
   script:
-    - npm run typecheck
+    - npx tsc --noEmit
 
 test:
   stage: test
@@ -34,3 +35,8 @@ coverage:
   stage: coverage
   script:
     - npm run coverage
+
+security:
+  stage: security
+  script:
+    - npm audit
