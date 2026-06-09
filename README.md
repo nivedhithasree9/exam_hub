@@ -1,62 +1,43 @@
-# Exam Hub — Competitive Exam Preparation Portal
+# Exam Hub
 
-This repository contains a full-stack project scaffold for an Indian competitive exam preparation portal.
+Exam Hub is a Streamlit app for browsing major Indian competitive exams, including eligibility, syllabus, pattern, dates, books, preparation tips, official links, and previous year question paper searches.
 
-## Structure
-
-- client — React + Vite + Tailwind frontend
-- server — Express backend
-- models — Sequelize models (MySQL)
-- routes — API routes
-- controllers — business logic
-
-## Quick Start
-
-### 1. Backend (MySQL)
+## Run Locally
 
 ```bash
-cd server
-npm install
-copy .env.example .env
-# edit .env to set MYSQL_URI or MySQL connection details
-npm run seed
-npm run dev
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-### 2. Frontend
+Then open the local Streamlit URL shown in the terminal, usually:
 
-```bash
-cd client
-npm install
-npm run dev
+```text
+http://localhost:8501
 ```
 
-The frontend proxies API requests to:
+## Project Structure
 
-```
-http://localhost:5000/api
-```
+- `app.py` - Streamlit app and exam data
+- `requirements.txt` - Python dependencies
+- `.gitlab-ci.yml` - CI syntax check for the Streamlit app
+- `.specify/` - GitHub Spec Kit templates, scripts, workflows, and project memory
+- `specs/` - Spec Kit feature specifications, plans, and task files
 
-## Features Implemented
+## Features
 
-- Exam listing with search and category filter
-- Exam detail page showing syllabus, pattern, dates, books, PYQs
-- REST API with CRUD endpoints
-- MySQL seed script (2020–2025 PYQs provided in sample data)
-- Tailwind styling and responsive layout
+- Search exams by name or description
+- Filter by category
+- View exam facts, eligibility, syllabus, selection process, books, preparation tips, application steps, and official links
+- Open previous year question paper searches from inside the app
 
-## Repository
+## Spec Kit
 
-Swecha Git:
+This project includes GitHub Spec Kit for spec-driven development. Use these Codex skills when planning future changes:
 
-```
-https://code.swecha.org/Nivedhitha/exam_hub.git
-```
-
-## Next Steps
-
-Run backend and frontend, then open:
-
-```
-http://localhost:3000
+```text
+$speckit-constitution
+$speckit-specify
+$speckit-plan
+$speckit-tasks
+$speckit-implement
 ```
