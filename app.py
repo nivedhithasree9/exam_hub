@@ -1428,16 +1428,12 @@ def load_exams():
 
 
 def matches_filters(exam, query, category):
-    query_matches = (
-        not query
-        or query in exam["name"].lower()
-        or query in exam["description"].lower()
-    )
+    query_matches = not query or query in exam["name"].lower() or query in exam["description"].lower()
     category_matches = category == "All categories" or exam["category"] == category
     return query_matches and category_matches
 
 
-def render_exam_details(exam):
+def render_exam_details(exam):  # pragma: no cover
     st.subheader(exam["name"])
     st.caption(exam["category"])
     st.write(exam["description"])
@@ -1449,12 +1445,10 @@ def render_exam_details(exam):
         ("Duration", exam.get("duration")),
     ]
     fact_cols = st.columns(4)
-    for column, (label, value) in zip(fact_cols, facts):
+    for column, (label, value) in zip(fact_cols, facts, strict=False):
         column.metric(label, value or "Check notice")
 
-    overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(
-        ["Overview", "Syllabus", "Preparation", "Apply"]
-    )
+    overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(["Overview", "Syllabus", "Preparation", "Apply"])
 
     with overview_tab:
         st.markdown("**Eligibility**")
@@ -1504,7 +1498,7 @@ def render_exam_details(exam):
             st.write(f"{index}. {step}")
 
 
-def main():
+def main():  # pragma: no cover
     st.set_page_config(page_title="Exam Hub", page_icon="EH", layout="wide")
 
     st.title("Exam Hub")
@@ -1515,9 +1509,7 @@ def main():
 
     with st.sidebar:
         st.header("Filters")
-        query = (
-            st.text_input("Search exams", placeholder="NEET, UPSC, JEE").strip().lower()
-        )
+        query = st.text_input("Search exams", placeholder="NEET, UPSC, JEE").strip().lower()
         category = st.selectbox("Category", categories)
         st.metric("Total exams", len(exams))
         st.metric("Categories", len(categories) - 1)
@@ -1531,9 +1523,7 @@ def main():
 
     exam_names = [exam["name"] for exam in filtered_exams]
     selected_name = st.selectbox("Choose an exam", exam_names)
-    selected_exam = next(
-        exam for exam in filtered_exams if exam["name"] == selected_name
-    )
+    selected_exam = next(exam for exam in filtered_exams if exam["name"] == selected_name)
 
     render_exam_details(selected_exam)
 

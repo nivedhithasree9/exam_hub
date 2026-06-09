@@ -3,6 +3,10 @@ mypy
 bandit
 vulture
 pyupgrade
+pylint
+flake8
+semgrep
+pip-audit
 pre-commit
 pytest
 pytest-cov

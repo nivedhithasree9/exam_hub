@@ -4,6 +4,7 @@ stages:
   - lint
   - format
   - type_check
+  - security
   - test
   - coverage
 
@@ -15,6 +16,10 @@ lint:
   stage: lint
   script:
     - ruff check .
+    - flake8 .
+    - pylint app.py
+    - vulture --min-confidence 100 .
+    - pyupgrade --py312-plus app.py
 
 format:
   stage: format
@@ -35,8 +40,19 @@ coverage:
   stage: coverage
   script:
     - pytest --cov=. --cov-report=term --cov-fail-under=70
+
+dependency_audit:
+  stage: security
+  script:
+    - pip-audit -r requirements.txt
+
+semgrep:
+  stage: security
+  script:
+    - semgrep --config p/python --error .
+
 secret_scan:
-  stage: lint
+  stage: security
   script:
     - pip install trufflehog
     - trufflehog filesystem .

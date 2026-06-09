@@ -14,8 +14,47 @@ repos:
     rev: 1.8.3
     hooks:
       - id: bandit
+        args: ["-c", "pyproject.toml"]
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+
+  - repo: https://github.com/pylint-dev/pylint
+    rev: v3.3.7
+    hooks:
+      - id: pylint
+        args: ["--rcfile=pyproject.toml"]
+        additional_dependencies: ["streamlit"]
+
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        args: ["--min-confidence", "100", "."]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.20.0
+    hooks:
+      - id: pyupgrade
+        args: ["--py312-plus"]
 
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.24.0
     hooks:
       - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: semgrep
+        name: semgrep
+        entry: semgrep --config p/python --error
+        language: system
+        types: [python]
+
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.9.0
+    hooks:
+      - id: pip-audit
+        args: ["-r", "requirements.txt"]

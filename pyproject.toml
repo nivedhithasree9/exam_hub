@@ -1,0 +1,50 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = false
+
+[tool.bandit]
+exclude_dirs = [".git", ".mypy_cache", ".ruff_cache", ".specify", "specs"]
+skips = ["B101"]
+
+[tool.flake8]
+max-line-length = 120
+extend-ignore = ["E203", "W503"]
+exclude = [".git", ".mypy_cache", ".ruff_cache", ".specify", "specs"]
+
+[tool.pylint.main]
+ignore = [".git", ".mypy_cache", ".ruff_cache", ".specify", "specs"]
+py-version = "3.12"
+
+[tool.pylint.messages_control]
+disable = [
+  "missing-module-docstring",
+  "missing-function-docstring",
+  "invalid-name",
+  "too-many-lines",
+  "too-many-locals",
+  "too-many-arguments",
+  "too-many-positional-arguments",
+  "too-many-branches",
+  "too-many-statements",
+  "too-many-nested-blocks",
+  "consider-using-in",
+  "line-too-long",
+  "duplicate-code",
+]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pytest.ini_options]
+addopts = "--cov=. --cov-report=term --cov-fail-under=70"
+testpaths = ["."]
+python_files = ["test_*.py", "*_test.py"]
+pythonpath = ["."]
