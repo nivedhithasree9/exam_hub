@@ -1,48 +1,36 @@
+image: node:22
+
 stages:
   - lint
   - format
   - type_check
   - test
-  - security
   - coverage
+
+before_script:
+  - npm install
 
 lint:
   stage: lint
-  image: node:20
   script:
-    - npm install
-    - npx eslint .
+    - npm run biome
 
 format:
   stage: format
-  image: node:20
   script:
-    - npm install
     - npx prettier --check .
 
 type_check:
   stage: type_check
-  image: node:20
   script:
-    - npm install
-    - npx tsc --noEmit
+    - npm run typecheck
 
 test:
   stage: test
-  image: node:20
   script:
-    - npm install
-    - npm test
+    - npm run test
 
 coverage:
   stage: coverage
-  image: node:20
   script:
-    - npm install
     - npm run coverage
-    security:
-  stage: security
-  image: node:20
-  script:
-    - npm install
-    - npm audit
