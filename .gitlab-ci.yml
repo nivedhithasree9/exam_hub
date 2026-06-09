@@ -1,12 +1,37 @@
 image: python:3.12
 
 stages:
+  - lint
+  - format
+  - type_check
   - test
+  - coverage
 
 before_script:
   - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+
+lint:
+  stage: lint
+  script:
+    - ruff check .
+
+format:
+  stage: format
+  script:
+    - ruff format --check .
+
+type_check:
+  stage: type_check
+  script:
+    - mypy .
 
 test:
   stage: test
   script:
-    - python -m py_compile app.py
+    - pytest
+
+coverage:
+  stage: coverage
+  script:
+    - pytest --cov=. --cov-report=term --cov-fail-under=70
