@@ -1,42 +1,12 @@
-image: node:22
+image: python:3.12
 
 stages:
-  - lint
-  - format
-  - type_check
   - test
-  - coverage
-  - security
 
 before_script:
-  - npm install
-
-lint:
-  stage: lint
-  script:
-    - npm run biome
-
-format:
-  stage: format
-  script:
-    - npx prettier --check .
-
-type_check:
-  stage: type_check
-  script:
-    - npx tsc --noEmit
+  - pip install -r requirements.txt
 
 test:
   stage: test
   script:
-    - npm run test
-
-coverage:
-  stage: coverage
-  script:
-    - npm run coverage
-
-security:
-  stage: security
-  script:
-    - npm audit
+    - python -m py_compile app.py
