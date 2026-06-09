@@ -1,2 +1,5 @@
 **/node_modules/
 .env
+.agents/
+__pycache__/
+*.pyc

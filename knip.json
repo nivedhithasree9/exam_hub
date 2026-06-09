@@ -1,7 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": [
-    "server/**/*.js",
-    "client/src/**/*.jsx"
-  ]
-}
