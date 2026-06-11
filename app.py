@@ -1,4 +1,5 @@
 from copy import deepcopy
+from difflib import SequenceMatcher
 from html import escape
 from json import JSONDecodeError, loads
 from urllib.error import HTTPError, URLError
@@ -34,6 +35,14 @@ def make_book_links(book):
         "Amazon": f"https://www.amazon.in/s?k={query}",
         "Flipkart": f"https://www.flipkart.com/search?q={query}",
     }
+
+
+def normalize_search_text(text):
+    return " ".join("".join(ch.lower() if ch.isalnum() else " " for ch in text).split())
+
+
+def search_tokens(text):
+    return normalize_search_text(text).split()
 
 
 APPLICATION_STEPS = [
@@ -1883,6 +1892,55 @@ def inject_theme():  # pragma: no cover
             fill: var(--text-color);
         }
 
+        div[data-testid="stTextInput"] input,
+        div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+            background:
+                linear-gradient(180deg, var(--soft-panel), var(--panel)) !important;
+            border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line)) !important;
+            border-radius: 12px !important;
+            color: var(--ink) !important;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 10px 24px var(--shadow) !important;
+        }
+
+        div[data-testid="stTextInput"] input:focus,
+        div[data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
+            border-color: var(--brand-2) !important;
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--brand-2) 48%, transparent),
+                0 0 28px color-mix(in srgb, var(--brand-2) 22%, transparent) !important;
+        }
+
+        div[data-testid="stTextInput"] input::placeholder {
+            color: color-mix(in srgb, var(--muted) 78%, var(--ink) 22%) !important;
+            opacity: 1 !important;
+        }
+
+        div[data-testid="stSelectbox"] [data-baseweb="select"] span,
+        div[data-testid="stSelectbox"] [data-baseweb="select"] svg {
+            color: var(--ink) !important;
+            fill: var(--ink) !important;
+        }
+
+        div[data-testid="stTextInput"] label,
+        div[data-testid="stSelectbox"] label {
+            color: var(--ink) !important;
+            font-weight: 800 !important;
+        }
+
+        .eh-top-controls {
+            border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--line));
+            border-radius: 14px;
+            background:
+                linear-gradient(135deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent 48%),
+                var(--soft-panel);
+            padding: 14px 16px;
+            margin: 0 0 16px;
+            box-shadow: 0 14px 34px var(--shadow);
+            animation: eh-fade-up 480ms ease-out both;
+        }
+
         .stTabs [data-baseweb="tab-list"] {
             border-bottom: 1px solid var(--line);
         }
@@ -2821,7 +2879,29 @@ def load_exams():
 
 
 def matches_filters(exam, query, category):
-    query_matches = not query or query in exam["name"].lower() or query in exam["description"].lower()
+    query = normalize_search_text(query)
+    searchable_text = normalize_search_text(
+        " ".join(
+            [
+                exam["name"],
+                exam["description"],
+                exam.get("category", ""),
+                exam.get("conductedBy", ""),
+                exam.get("logoText", make_exam_logo_text(exam)),
+            ]
+        )
+    )
+    searchable_tokens = search_tokens(searchable_text)
+    query_tokens = search_tokens(query)
+    query_matches = not query or query in searchable_text or all(
+        any(
+            token.startswith(query_token)
+            or query_token.startswith(token)
+            or SequenceMatcher(None, query_token, token).ratio() >= 0.74
+            for token in searchable_tokens
+        )
+        for query_token in query_tokens
+    )
     category_matches = category == "All categories" or exam["category"] == category
     return query_matches and category_matches
 
@@ -2974,27 +3054,47 @@ def main():  # pragma: no cover
     st.set_page_config(page_title="Exam Hub", page_icon="EH", layout="wide")
     inject_theme()
     st.session_state.setdefault("selected_exam_id", None)
+    st.session_state.setdefault("language_name", "English")
 
     exams = load_exams()
     categories = ["All categories"] + sorted({exam["category"] for exam in exams})
 
-    with st.sidebar:
-        st.markdown(
-            """
-            <div class="eh-sidebar-brand">
-                <div class="eh-sidebar-logo">EH</div>
-                <div class="eh-sidebar-name">Exam Hub</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        language_name = st.selectbox("Language", list(LANGUAGES), index=0)
-        language_code = LANGUAGES[language_name]
-        st.caption(tr("app_tagline", language_code))
+    st.markdown('<div class="eh-top-controls">', unsafe_allow_html=True)
+    search_col, category_col, menu_col = st.columns([1.25, 0.85, 0.18])
+
+    with menu_col:
+        if hasattr(st, "popover"):
+            menu = st.popover("☰", use_container_width=True)
+        else:
+            menu = st.expander("Menu")
+        with menu:
+            st.markdown(
+                """
+                <div class="eh-sidebar-brand">
+                    <div class="eh-sidebar-logo">EH</div>
+                    <div class="eh-sidebar-name">Exam Hub</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            language_name = st.selectbox(
+                "Language",
+                list(LANGUAGES),
+                index=list(LANGUAGES).index(st.session_state.language_name),
+                key="language_name",
+            )
+            language_code = LANGUAGES[language_name]
+            st.caption(tr("app_tagline", language_code))
+            st.metric(tr("total_exams", language_code), len(exams))
+            st.metric(tr("categories", language_code), len(categories) - 1)
+
+    language_name = st.session_state.language_name
+    language_code = LANGUAGES[language_name]
+    with search_col:
         query = st.text_input(tr("search_exams", language_code), placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
+    with category_col:
         category = st.selectbox(tr("category", language_code), categories)
-        st.metric(tr("total_exams", language_code), len(exams))
-        st.metric(tr("categories", language_code), len(categories) - 1)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]
 
