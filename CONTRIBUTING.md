@@ -11,7 +11,7 @@ Development Workflow
    `pip install -r requirements-dev.txt`.
 3. Install hooks with `pre-commit install`.
 4. Keep changes focused and update documentation when behavior changes.
-5. Run the local quality checks before opening a merge request.
+5. Run the local quality checks before opening a merge request..
 
 Local Checks
 ------------
