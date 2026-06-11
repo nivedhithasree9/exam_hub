@@ -1,4 +1,5 @@
 from copy import deepcopy
+from html import escape
 from urllib.parse import quote_plus
 
 import streamlit as st
@@ -1177,6 +1178,40 @@ ADDITIONAL_EXAMS = [
         "Computer-based test",
     ),
     exam_record(
+        "Graduate Management Admission Test (GMAT)",
+        "Management",
+        "Global business school admission test for MBA and other graduate management programs.",
+        "No fixed academic eligibility for taking the exam; program eligibility depends on each business school.",
+        ["Quantitative Reasoning", "Verbal Reasoning", "Data Insights"],
+        "Computer-adaptive objective exam with three timed sections.",
+        "Graduate Management Admission Council (GMAC)",
+        "https://www.mba.com/exams/gmat-exam",
+        "Admission to GMAT-accepting MBA, MiM, finance, accounting, and other management programs.",
+        [
+            "Create an mba.com account",
+            "Schedule the test center or online exam",
+            "Appear for GMAT",
+            "Send scores to selected business schools",
+        ],
+        "Year-round registration",
+        "Available by appointment",
+        "About 2 hours 15 minutes",
+        "Computer-based adaptive test",
+        "Available throughout the year",
+        books=[
+            "Official GMAT study material from mba.com",
+            "GMAT Official Guide",
+            "Quantitative Reasoning practice sets",
+            "Verbal Reasoning and Data Insights mock tests",
+        ],
+        tips=[
+            "Review the official exam structure before making a study plan",
+            "Practice timed Quantitative, Verbal, and Data Insights sections",
+            "Analyze mock test score reports for weak areas",
+            "Shortlist target schools before sending scores",
+        ],
+    ),
+    exam_record(
         "Common Law Admission Test (CLAT PG)",
         "Law",
         "Entrance exam for postgraduate law programs and some legal recruitment use.",
@@ -1414,6 +1449,459 @@ CATEGORY_ACCENTS = {
 }
 
 
+def inject_theme():  # pragma: no cover
+    st.markdown(
+        """
+        <style>
+        :root {
+            --ink: #172033;
+            --muted: #667085;
+            --line: #e6eaf0;
+            --panel: #ffffff;
+            --canvas: #f6f8fb;
+            --brand: #2152ff;
+            --brand-2: #00a7a5;
+        }
+
+        .stApp {
+            background:
+                linear-gradient(180deg, rgba(246, 248, 251, 0.96), rgba(246, 248, 251, 1)),
+                radial-gradient(circle at top left, rgba(33, 82, 255, 0.13), transparent 34%),
+                radial-gradient(circle at top right, rgba(0, 167, 165, 0.12), transparent 30%);
+            color: var(--ink);
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 3rem;
+            max-width: 1180px;
+        }
+
+        section[data-testid="stSidebar"] {
+            background: #101828;
+        }
+
+        section[data-testid="stSidebar"] * {
+            color: #f8fafc;
+        }
+
+        section[data-testid="stSidebar"] input,
+        section[data-testid="stSidebar"] [data-baseweb="select"] * {
+            color: #101828;
+        }
+
+        .eh-hero {
+            border: 1px solid rgba(23, 32, 51, 0.08);
+            border-radius: 18px;
+            padding: 30px;
+            background:
+                linear-gradient(135deg, rgba(16, 24, 40, 0.96), rgba(33, 82, 255, 0.88)),
+                linear-gradient(45deg, rgba(0, 167, 165, 0.35), transparent);
+            color: #ffffff;
+            box-shadow: 0 20px 48px rgba(16, 24, 40, 0.16);
+            margin-bottom: 22px;
+        }
+
+        .eh-kicker {
+            color: rgba(255, 255, 255, 0.74);
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .eh-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 26px;
+        }
+
+        .eh-logo {
+            width: 54px;
+            height: 54px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(135deg, #ffffff 0%, #d7fff7 46%, #b7c8ff 100%);
+            color: #172033;
+            font-size: 1.15rem;
+            font-weight: 900;
+            letter-spacing: 0;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+        }
+
+        .eh-brand-text {
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.86rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .eh-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 4px 0 18px;
+        }
+
+        .eh-sidebar-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ffffff 0%, #d7fff7 46%, #b7c8ff 100%);
+            color: #172033;
+            font-size: 0.86rem;
+            font-weight: 900;
+        }
+
+        .eh-sidebar-name {
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 850;
+            line-height: 1.1;
+        }
+
+        .eh-hero h1 {
+            color: #ffffff;
+            font-size: 3rem;
+            line-height: 1.05;
+            margin: 0 0 12px;
+            letter-spacing: 0;
+        }
+
+        .eh-hero p {
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 1.02rem;
+            max-width: 740px;
+            margin: 0;
+        }
+
+        .eh-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .eh-stat {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.86);
+            padding: 16px;
+        }
+
+        .eh-stat-value {
+            color: var(--ink);
+            font-size: 1.55rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .eh-stat-label {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-top: 7px;
+        }
+
+        .eh-card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.92);
+            padding: 18px;
+            margin-bottom: 14px;
+            box-shadow: 0 10px 28px rgba(16, 24, 40, 0.06);
+        }
+
+        .eh-exam-card {
+            border-left: 5px solid var(--accent);
+        }
+
+        .eh-card h3 {
+            color: var(--ink);
+            font-size: 1.1rem;
+            line-height: 1.25;
+            margin: 0 0 8px;
+            letter-spacing: 0;
+        }
+
+        .eh-card p {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin: 0;
+        }
+
+        .eh-passport {
+            display: grid;
+            grid-template-columns: 1.4fr repeat(2, minmax(0, 0.8fr));
+            gap: 14px;
+            margin: 14px 0 18px;
+        }
+
+        .eh-passport-panel {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
+                linear-gradient(135deg, var(--accent-bg), transparent 48%);
+            padding: 16px;
+            min-height: 118px;
+        }
+
+        .eh-passport-label {
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .eh-passport-value {
+            color: var(--ink);
+            font-size: 1.08rem;
+            font-weight: 850;
+            line-height: 1.35;
+        }
+
+        .eh-fact-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin: 16px 0 24px;
+        }
+
+        .eh-fact {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #ffffff;
+            padding: 13px;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05);
+        }
+
+        .eh-fact-label {
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 800;
+            margin-bottom: 7px;
+        }
+
+        .eh-fact-value {
+            color: var(--ink);
+            font-size: 0.95rem;
+            font-weight: 800;
+            line-height: 1.25;
+        }
+
+        .eh-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 14px;
+        }
+
+        .eh-info-panel {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 16px;
+            min-height: 126px;
+        }
+
+        .eh-info-panel-wide {
+            grid-column: 1 / -1;
+        }
+
+        .eh-info-title {
+            color: var(--ink);
+            font-size: 0.92rem;
+            font-weight: 850;
+            margin-bottom: 10px;
+        }
+
+        .eh-info-copy {
+            color: #344054;
+            font-size: 0.95rem;
+            line-height: 1.55;
+        }
+
+        .eh-chip-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .eh-pill-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 0 0;
+        }
+
+        .eh-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            background: rgba(16, 24, 40, 0.06);
+            color: #344054;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 6px 10px;
+        }
+
+        .eh-category-pill {
+            background: var(--accent-bg);
+            color: var(--accent);
+        }
+
+        .eh-section-title {
+            color: var(--ink);
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 4px 0 12px;
+        }
+
+        .eh-timeline {
+            display: grid;
+            gap: 10px;
+        }
+
+        .eh-step {
+            border-left: 3px solid var(--brand-2);
+            padding-left: 12px;
+            color: #344054;
+        }
+
+        @media (max-width: 900px) {
+            .eh-stat-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .eh-passport,
+            .eh-fact-grid,
+            .eh-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .eh-info-panel-wide {
+                grid-column: auto;
+            }
+
+            .eh-hero h1 {
+                font-size: 2.25rem;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero():  # pragma: no cover
+    st.markdown(
+        """
+        <div class="eh-hero">
+            <div class="eh-brand">
+                <div class="eh-logo">EH</div>
+                <div>
+                    <div class="eh-brand-text">Exam intelligence workspace</div>
+                    <div class="eh-kicker">Plan. Compare. Prepare.</div>
+                </div>
+            </div>
+            <h1>Exam Hub</h1>
+            <p>
+                Discover, compare, and prepare for competitive exams with structured facts,
+                trusted official links, and preparation paths in one focused workspace.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_stat_grid(exams, filtered_exams, categories):  # pragma: no cover
+    management_count = sum(1 for exam in exams if exam["category"] == "Management")
+    online_count = sum(1 for exam in exams if "computer" in exam.get("examMode", "").lower())
+    st.markdown(
+        f"""
+        <div class="eh-stat-grid">
+            <div class="eh-stat">
+                <div class="eh-stat-value">{len(exams)}</div>
+                <div class="eh-stat-label">Curated exams</div>
+            </div>
+            <div class="eh-stat">
+                <div class="eh-stat-value">{len(categories) - 1}</div>
+                <div class="eh-stat-label">Exam categories</div>
+            </div>
+            <div class="eh-stat">
+                <div class="eh-stat-value">{len(filtered_exams)}</div>
+                <div class="eh-stat-label">Current matches</div>
+            </div>
+            <div class="eh-stat">
+                <div class="eh-stat-value">{online_count}</div>
+                <div class="eh-stat-label">Computer-based exams</div>
+            </div>
+        </div>
+        <div class="eh-pill-row">
+            <span class="eh-pill">Management exams: {management_count}</span>
+            <span class="eh-pill">Official links included</span>
+            <span class="eh-pill">Previous year paper search</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_exam_preview(exam):  # pragma: no cover
+    accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
+    st.markdown(
+        f"""
+        <div class="eh-card eh-exam-card" style="--accent: {accent}; --accent-bg: {accent}18;">
+            <h3>{escape(exam["name"])}</h3>
+            <p>{escape(exam["description"])}</p>
+            <div class="eh-pill-row">
+                <span class="eh-pill eh-category-pill">{escape(exam["category"])}</span>
+                <span class="eh-pill">{escape(exam.get("examMode", "Check notice"))}</span>
+                <span class="eh-pill">{escape(exam.get("duration", "Check notice"))}</span>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_fact_cards(facts):  # pragma: no cover
+    cards = []
+    for label, value in facts:
+        cards.append(
+            f"""
+            <div class="eh-fact">
+                <div class="eh-fact-label">{escape(label)}</div>
+                <div class="eh-fact-value">{escape(value or "Check notice")}</div>
+            </div>
+            """
+        )
+    st.markdown(f'<div class="eh-fact-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
+def render_overview_panel(title, value, wide=False):  # pragma: no cover
+    wide_class = " eh-info-panel-wide" if wide else ""
+    return f"""
+    <div class="eh-info-panel{wide_class}">
+        <div class="eh-info-title">{escape(title)}</div>
+        <div class="eh-info-copy">{escape(value)}</div>
+    </div>
+    """
+
+
 @st.cache_data
 def load_exams():
     exams = []
@@ -1434,9 +1922,40 @@ def matches_filters(exam, query, category):
 
 
 def render_exam_details(exam):  # pragma: no cover
-    st.subheader(exam["name"])
-    st.caption(exam["category"])
-    st.write(exam["description"])
+    accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
+    st.markdown(
+        f"""
+        <div class="eh-card eh-exam-card" style="--accent: {accent}; --accent-bg: {accent}18;">
+            <div class="eh-pill-row" style="margin: 0 0 12px;">
+                <span class="eh-pill eh-category-pill">{escape(exam["category"])}</span>
+                <span class="eh-pill">{escape(exam.get("frequency", "Check notice"))}</span>
+            </div>
+            <h3>{escape(exam["name"])}</h3>
+            <p>{escape(exam["description"])}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        f"""
+        <div class="eh-passport" style="--accent-bg: {accent}18;">
+            <div class="eh-passport-panel">
+                <div class="eh-passport-label">Best used for</div>
+                <div class="eh-passport-value">{escape(exam["useFor"])}</div>
+            </div>
+            <div class="eh-passport-panel">
+                <div class="eh-passport-label">Application mode</div>
+                <div class="eh-passport-value">{escape(exam.get("applicationMode", "Check notice"))}</div>
+            </div>
+            <div class="eh-passport-panel">
+                <div class="eh-passport-label">Fee</div>
+                <div class="eh-passport-value">{escape(exam.get("fee", "Check notice"))}</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     facts = [
         ("Conducted by", exam.get("conductedBy")),
@@ -1444,20 +1963,22 @@ def render_exam_details(exam):  # pragma: no cover
         ("Exam mode", exam.get("examMode")),
         ("Duration", exam.get("duration")),
     ]
-    fact_cols = st.columns(4)
-    for column, (label, value) in zip(fact_cols, facts, strict=False):
-        column.metric(label, value or "Check notice")
+    render_fact_cards(facts)
 
     overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(["Overview", "Syllabus", "Preparation", "Apply"])
 
     with overview_tab:
-        st.markdown("**Eligibility**")
-        st.write(exam["eligibility"])
-        st.markdown("**Exam pattern**")
-        st.write(exam["pattern"])
-        st.markdown("**Used for**")
-        st.write(exam["useFor"])
-        st.markdown("**Important dates**")
+        st.markdown(
+            f"""
+            <div class="eh-info-grid">
+                {render_overview_panel("Eligibility", exam["eligibility"])}
+                {render_overview_panel("Exam pattern", exam["pattern"])}
+                {render_overview_panel("Used for", exam["useFor"], wide=True)}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="eh-section-title">Important dates</div>', unsafe_allow_html=True)
         st.table(
             {
                 "Stage": ["Notification", "Exam date"],
@@ -1469,52 +1990,80 @@ def render_exam_details(exam):  # pragma: no cover
         )
 
     with syllabus_tab:
-        for item in exam["syllabus"]:
-            st.markdown(f"- {item}")
-        st.markdown("**Selection process**")
-        for index, step in enumerate(exam["selectionProcess"], start=1):
-            st.write(f"{index}. {step}")
+        st.markdown('<div class="eh-section-title">Syllabus focus</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="eh-chip-list">'
+            + "".join(f'<span class="eh-pill">{escape(item)}</span>' for item in exam["syllabus"])
+            + "</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="eh-section-title">Selection process</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="eh-timeline">'
+            + "".join(
+                f'<div class="eh-step"><strong>{index:02d}</strong> {escape(step)}</div>'
+                for index, step in enumerate(exam["selectionProcess"], start=1)
+            )
+            + "</div>",
+            unsafe_allow_html=True,
+        )
 
     with prep_tab:
-        st.markdown("**Recommended books and study material**")
+        st.markdown('<div class="eh-section-title">Recommended books and study material</div>', unsafe_allow_html=True)
         for book in exam["books"]:
             st.markdown(f"- {book}")
-        st.markdown("**Preparation tips**")
+        st.markdown('<div class="eh-section-title">Preparation tips</div>', unsafe_allow_html=True)
         for tip in exam["preparationTips"]:
             st.markdown(f"- {tip}")
-        st.markdown("**Previous year question papers**")
+        st.markdown('<div class="eh-section-title">Previous year question papers</div>', unsafe_allow_html=True)
         for paper in exam["pyq"]:
             st.link_button(f"{paper['year']} Question Paper", paper["url"])
 
     with apply_tab:
-        st.markdown("**Application mode**")
+        st.markdown('<div class="eh-section-title">Application mode</div>', unsafe_allow_html=True)
         st.write(exam.get("applicationMode", "Check latest notification"))
-        st.markdown("**Fee**")
+        st.markdown('<div class="eh-section-title">Fee</div>', unsafe_allow_html=True)
         st.write(exam.get("fee", "Check latest notification"))
         if exam.get("officialWebsite"):
             st.link_button("Open official website", exam["officialWebsite"])
-        st.markdown("**How to apply**")
+        st.markdown('<div class="eh-section-title">How to apply</div>', unsafe_allow_html=True)
         for index, step in enumerate(exam["applicationSteps"], start=1):
             st.write(f"{index}. {step}")
 
 
 def main():  # pragma: no cover
     st.set_page_config(page_title="Exam Hub", page_icon="EH", layout="wide")
-
-    st.title("Exam Hub")
-    st.write("Search, compare, and prepare for major Indian competitive exams.")
+    inject_theme()
 
     exams = load_exams()
     categories = ["All categories"] + sorted({exam["category"] for exam in exams})
 
     with st.sidebar:
-        st.header("Filters")
-        query = st.text_input("Search exams", placeholder="NEET, UPSC, JEE").strip().lower()
+        st.markdown(
+            """
+            <div class="eh-sidebar-brand">
+                <div class="eh-sidebar-logo">EH</div>
+                <div class="eh-sidebar-name">Exam Hub</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption("Find the right exam path faster.")
+        query = st.text_input("Search exams", placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
         category = st.selectbox("Category", categories)
         st.metric("Total exams", len(exams))
         st.metric("Categories", len(categories) - 1)
 
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]
+
+    render_hero()
+    render_stat_grid(exams, filtered_exams, categories)
+
+    st.markdown('<div class="eh-section-title">Matching exams</div>', unsafe_allow_html=True)
+    preview_columns = st.columns(3)
+    for column, exam in zip(preview_columns, filtered_exams[:3], strict=False):
+        with column:
+            render_exam_preview(exam)
 
     st.caption(f"{len(filtered_exams)} result{'s' if len(filtered_exams) != 1 else ''}")
     if not filtered_exams:
