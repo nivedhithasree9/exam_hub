@@ -54,6 +54,62 @@ APPLICATION_STEPS = [
     "Download the submitted application form and keep it for future reference.",
 ]
 
+EXAM_DAY_DOS = [
+    "Read the latest official admit card instructions before leaving for the center.",
+    "Carry your admit card, original photo ID, and required photographs or certificates.",
+    "Reach the exam center well before the reporting time mentioned in the notice.",
+    "Follow the invigilator's instructions and keep your login or answer sheet details accurate.",
+    "Use only the permitted stationery, calculator, documents, or rough sheets.",
+    "Check your submitted responses or answer-sheet entries before the final submission.",
+]
+
+EXAM_DAY_DONTS = [
+    "Do not carry phones, smart watches, earphones, notes, books, or electronic gadgets unless allowed.",
+    "Do not share answers, talk during the exam, or copy from another candidate.",
+    "Do not open any other browser tab, app, paper seal, or question section before instructions allow it.",
+    "Do not leave the exam hall without permission, even after finishing early.",
+    "Do not write on admit cards, ID proofs, desks, or any place not provided for rough work.",
+    "Do not ignore dress code, biometric, frisking, or document-verification rules.",
+]
+
+RESERVATION_CATEGORIES = [
+    {
+        "title": "SC / ST",
+        "detail": "Reserved seats, relaxed cutoffs, age limits, or fees may apply as per the exam notice.",
+    },
+    {
+        "title": "OBC-NCL",
+        "detail": "Benefits usually apply only for Non-Creamy Layer candidates with a valid certificate.",
+    },
+    {
+        "title": "EWS",
+        "detail": "Economically Weaker Section benefits require an income and asset certificate in the latest format.",
+    },
+    {
+        "title": "PwD",
+        "detail": "Persons with Benchmark Disabilities may get reservation, extra time, scribes, or other facilities.",
+    },
+    {
+        "title": "State / Domicile",
+        "detail": "State exams may include local, rural, women, defence, sports, or institution-specific quotas.",
+    },
+]
+
+RESERVATION_CHECKLIST = [
+    "Check whether reservation is based on central, state, or institute rules for this exam.",
+    "Use the exact certificate format, authority, category name, and issue date required in the notification.",
+    "Confirm if the certificate must be uploaded during application, counselling, or document verification.",
+    "Keep name, date of birth, category, and parent details consistent across certificates and ID proof.",
+    "Read category-wise fee, cutoff, rank list, seat matrix, and counselling rules before locking choices.",
+]
+
+OVERVIEW_CHECKLIST = [
+    "Confirm eligibility, age limits, attempt limits, subject requirements, and category rules.",
+    "Download the syllabus and mark topics that match your current preparation level.",
+    "Track application start date, correction window, admit card release, exam date, and result date.",
+    "Keep scanned documents ready before applying so the form can be submitted without last-minute errors.",
+]
+
 
 BASE_EXAMS = [
     {
@@ -2425,6 +2481,117 @@ def inject_theme():  # pragma: no cover
             line-height: 1.55;
         }
 
+        .eh-overview-brief {
+            border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+            border-radius: 14px;
+            background:
+                linear-gradient(135deg, var(--accent-bg), transparent 46%),
+                var(--soft-panel);
+            padding: 18px;
+            margin: 12px 0 16px;
+        }
+
+        .eh-overview-brief-title {
+            color: var(--ink);
+            font-size: 1rem;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .eh-overview-brief-copy {
+            color: var(--muted);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .eh-rule-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-top: 12px;
+        }
+
+        .eh-rule-panel {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--soft-panel);
+            padding: 16px;
+        }
+
+        .eh-rule-title {
+            color: var(--ink);
+            font-size: 1rem;
+            font-weight: 900;
+            margin-bottom: 12px;
+        }
+
+        .eh-rule-list {
+            display: grid;
+            gap: 10px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .eh-rule-list li {
+            color: var(--muted);
+            line-height: 1.45;
+            padding-left: 26px;
+            position: relative;
+        }
+
+        .eh-rule-list li::before {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 900;
+        }
+
+        .eh-rule-do li::before {
+            content: "Y";
+            background: #0f9f6e;
+        }
+
+        .eh-rule-dont li::before {
+            content: "!";
+            background: #d14343;
+        }
+
+        .eh-detail-list {
+            display: grid;
+            gap: 10px;
+            margin: 12px 0 18px;
+        }
+
+        .eh-detail-item {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--soft-panel);
+            padding: 13px 14px;
+        }
+
+        .eh-detail-item strong {
+            color: var(--ink);
+            display: block;
+            font-size: 0.92rem;
+            margin-bottom: 5px;
+        }
+
+        .eh-detail-item span {
+            color: var(--muted);
+            display: block;
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }
+
         .eh-book-card {
             border: 1px solid var(--line);
             border-radius: 14px;
@@ -2713,7 +2880,8 @@ def inject_theme():  # pragma: no cover
             .eh-passport,
             .eh-fact-grid,
             .eh-info-grid,
-            .eh-insight-grid {
+            .eh-insight-grid,
+            .eh-rule-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -2833,9 +3001,131 @@ def render_overview_panel(title, value, wide=False):  # pragma: no cover
     )
 
 
+def render_overview_brief(exam, language_code):  # pragma: no cover
+    summary = (
+        f"{exam['name']} is conducted by {exam.get('conductedBy', 'the official authority')} "
+        f"for {exam['useFor'].rstrip('.')}. The exam is usually handled through "
+        f"{exam.get('applicationMode', 'the notified application mode').lower()} application, "
+        f"uses {exam.get('examMode', 'the notified exam mode').lower()}, and has a duration of "
+        f"{exam.get('duration', 'the time mentioned in the latest notification').lower()}."
+    )
+    st.markdown(
+        f"""
+        <div class="eh-overview-brief">
+            <div class="eh-overview-brief-title">{escape(translate_text("Quick exam brief", language_code))}</div>
+            <div class="eh-overview-brief-copy">{escape(translate_text(summary, language_code))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_detail_list(items, language_code):  # pragma: no cover
+    st.markdown(
+        '<div class="eh-detail-list">'
+        + "".join(
+            '<div class="eh-detail-item">'
+            f'<strong>{escape(translate_text(item["title"], language_code))}</strong>'
+            f'<span>{escape(translate_text(item["detail"], language_code))}</span>'
+            "</div>"
+            for item in items
+        )
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def render_overview_checklist(exam, language_code):  # pragma: no cover
+    items = [
+        {
+            "title": "Admission or recruitment use",
+            "detail": exam["useFor"],
+        },
+        {
+            "title": "Documents to keep ready",
+            "detail": "Admit card, photo ID, photographs, signature, mark sheets, and category certificate if applicable.",
+        },
+        {
+            "title": "Before applying",
+            "detail": " ".join(OVERVIEW_CHECKLIST),
+        },
+    ]
+    render_detail_list(items, language_code)
+
+
+def render_rule_panel(title, items, class_name, language_code):  # pragma: no cover
+    translated_items = "".join(
+        f"<li>{escape(translate_text(item, language_code))}</li>"
+        for item in items
+    )
+    return (
+        '<div class="eh-rule-panel">'
+        f'<div class="eh-rule-title">{escape(translate_text(title, language_code))}</div>'
+        f'<ul class="eh-rule-list {class_name}">{translated_items}</ul>'
+        "</div>"
+    )
+
+
+def render_exam_rules(exam, language_code):  # pragma: no cover
+    st.markdown(
+        f"""
+        <div class="eh-overview-brief">
+            <div class="eh-overview-brief-title">{escape(translate_text("Exam-day rules", language_code))}</div>
+            <div class="eh-overview-brief-copy">
+                {escape(translate_text("These are common rules for most exams. Always follow the latest official admit card and notification for final instructions.", language_code))}
+            </div>
+        </div>
+        <div class="eh-rule-grid">
+            {render_rule_panel("Do's", exam["examDayDos"], "eh-rule-do", language_code)}
+            {render_rule_panel("Don'ts", exam["examDayDonts"], "eh-rule-dont", language_code)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_reservation_details(exam, language_code):  # pragma: no cover
+    st.markdown(
+        f"""
+        <div class="eh-overview-brief">
+            <div class="eh-overview-brief-title">{escape(translate_text("Reservation information", language_code))}</div>
+            <div class="eh-overview-brief-copy">
+                {escape(translate_text("Reservation rules can change by exam, state, institution, and counselling authority. Use this as a checklist, then confirm the exact rule in the latest official notification.", language_code))}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    render_detail_list(exam["reservationCategories"], language_code)
+    st.markdown(
+        '<div class="eh-rule-grid">'
+        + render_rule_panel("Reservation checklist", exam["reservationChecklist"], "eh-rule-do", language_code)
+        + render_rule_panel(
+            "Avoid these mistakes",
+            [
+                "Do not select a category without the required valid certificate.",
+                "Do not assume state quota rules are the same as central quota rules.",
+                "Do not wait until counselling to correct category or certificate mistakes.",
+                "Do not rely on old cutoff or seat data without checking the latest seat matrix.",
+            ],
+            "eh-rule-dont",
+            language_code,
+        )
+        + "</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def render_section_title(key, language_code):  # pragma: no cover
     st.markdown(
         f'<div class="eh-section-title">{escape(tr(key, language_code))}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_text_section_title(title, language_code):  # pragma: no cover
+    st.markdown(
+        f'<div class="eh-section-title">{escape(translate_text(title, language_code))}</div>',
         unsafe_allow_html=True,
     )
 
@@ -2874,6 +3164,10 @@ def load_exams():
         item["logoText"] = make_exam_logo_text(item)
         item["pyq"] = make_pyqs(short_name)
         item["applicationSteps"] = APPLICATION_STEPS
+        item["examDayDos"] = EXAM_DAY_DOS
+        item["examDayDonts"] = EXAM_DAY_DONTS
+        item["reservationCategories"] = RESERVATION_CATEGORIES
+        item["reservationChecklist"] = RESERVATION_CHECKLIST
         exams.append(item)
     return exams
 
@@ -2930,11 +3224,13 @@ def render_exam_details(exam, language_code):  # pragma: no cover
         unsafe_allow_html=True,
     )
 
-    overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(
+    overview_tab, syllabus_tab, prep_tab, rules_tab, reservation_tab, apply_tab = st.tabs(
         [
             tr("overview", language_code),
             tr("syllabus", language_code),
             tr("preparation", language_code),
+            translate_text("Rules", language_code),
+            translate_text("Reservation", language_code),
             tr("apply", language_code),
         ]
     )
@@ -2942,6 +3238,7 @@ def render_exam_details(exam, language_code):  # pragma: no cover
     with overview_tab:
         check_notice = tr("check_notice", language_code)
         check_latest = tr("check_latest", language_code)
+        render_overview_brief(exam, language_code)
         overview_panels = [
             render_overview_panel(
                 tr("eligibility", language_code),
@@ -2982,6 +3279,8 @@ def render_exam_details(exam, language_code):  # pragma: no cover
             f'<div class="eh-info-grid">{"".join(overview_panels)}</div>',
             unsafe_allow_html=True,
         )
+        render_text_section_title("Before you apply", language_code)
+        render_overview_checklist(exam, language_code)
         render_section_title("important_dates", language_code)
         st.table(
             {
@@ -3037,6 +3336,12 @@ def render_exam_details(exam, language_code):  # pragma: no cover
         render_section_title("pyq", language_code)
         for paper in exam["pyq"]:
             st.link_button(f"{paper['year']} Question Paper", paper["url"])
+
+    with rules_tab:
+        render_exam_rules(exam, language_code)
+
+    with reservation_tab:
+        render_reservation_details(exam, language_code)
 
     with apply_tab:
         render_section_title("application_mode", language_code)
