@@ -1460,6 +1460,87 @@ CATEGORY_ACCENTS = {
 }
 
 
+EXAM_LOGO_ALIASES = {
+    "jee main": "JEE",
+    "jee advanced": "IIT",
+    "neet ug": "NEET",
+    "gate": "GATE",
+    "cat": "CAT",
+    "upsc cse": "UPSC",
+    "ssc cgl": "SSC",
+    "ibps po": "IBPS",
+    "clat": "CLAT",
+    "cuet ug": "CUET",
+    "cuet pg": "CUET",
+    "ugc net": "NET",
+    "ctet": "CTET",
+    "nda": "NDA",
+    "cds": "CDS",
+    "afcat": "AFCAT",
+    "ese": "ESE",
+    "capf": "CAPF",
+    "chsl": "CHSL",
+    "mts": "MTS",
+    "cpo": "CPO",
+    "rrb ntpc": "RRB",
+    "rrb group d": "RRB",
+    "rrb alp": "ALP",
+    "sbi po": "SBI",
+    "sbi clerk": "SBI",
+    "ibps clerk": "IBPS",
+    "ibps rrb": "RRB",
+    "rbi grade b": "RBI",
+    "rbi assistant": "RBI",
+    "neet pg": "NEET",
+    "fmge": "FMGE",
+    "aiims norcet": "AIIMS",
+    "gpat": "GPAT",
+    "xat": "XAT",
+    "cmat": "CMAT",
+    "snap": "SNAP",
+    "nmat": "NMAT",
+    "gmat": "GMAT",
+    "gre": "GRE",
+    "ielts": "IELTS",
+    "toefl": "TOEFL",
+    "sat": "SAT",
+    "act": "ACT",
+    "lsat": "LSAT",
+    "ailet": "AILET",
+    "nift": "NIFT",
+    "nid dat": "NID",
+    "uceed": "UCEED",
+    "nata": "NATA",
+    "ca foundation": "ICAI",
+    "cma foundation": "ICMAI",
+    "cseet": "ICSI",
+}
+
+
+def make_exam_logo_text(exam):
+    name = exam["name"].lower()
+    compact_name = " ".join("".join(ch.lower() if ch.isalnum() else " " for ch in exam["name"]).split())
+    for key, logo in EXAM_LOGO_ALIASES.items():
+        if key in name or key in compact_name:
+            return logo
+
+    uppercase_tokens = [
+        "".join(ch for ch in token if ch.isalpha())
+        for token in exam["name"].replace("(", " ").replace(")", " ").split()
+        if token.isupper()
+    ]
+    acronym = "".join(token[0] for token in uppercase_tokens if token)
+    if len(acronym) >= 2:
+        return acronym[:5]
+
+    words = [
+        "".join(ch for ch in token if ch.isalnum())
+        for token in exam["name"].replace("(", " ").replace(")", " ").split()
+    ]
+    initials = "".join(word[0].upper() for word in words if word and word[0].isalpha())
+    return initials[:4] or "EXAM"
+
+
 LANGUAGES = {
     "English": "en",
     "Hindi": "hi",
@@ -1824,6 +1905,10 @@ def inject_theme():  # pragma: no cover
             border-radius: 10px !important;
             box-shadow: 0 10px 24px rgba(33, 82, 255, 0.24) !important;
             opacity: 1 !important;
+            transition:
+                transform 180ms ease,
+                box-shadow 180ms ease,
+                filter 180ms ease !important;
         }
 
         .stButton button p,
@@ -1839,6 +1924,8 @@ def inject_theme():  # pragma: no cover
         div[data-testid="stButton"] button:hover {
             border-color: #173ed6 !important;
             filter: brightness(1.04);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(33, 82, 255, 0.3) !important;
         }
 
         div[data-testid="stDataFrame"],
@@ -1853,9 +1940,79 @@ def inject_theme():  # pragma: no cover
             background:
                 linear-gradient(135deg, rgba(16, 24, 40, 0.98), rgba(37, 70, 202, 0.92)),
                 linear-gradient(45deg, rgba(45, 212, 191, 0.26), transparent);
+            background-size: 180% 180%;
             color: #ffffff;
             box-shadow: 0 22px 54px var(--shadow);
             margin-bottom: 22px;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            animation:
+                eh-fade-up 620ms ease-out both,
+                eh-hero-gradient 9s ease-in-out infinite;
+            transition:
+                transform 220ms ease,
+                box-shadow 220ms ease,
+                border-color 220ms ease;
+        }
+
+        .eh-hero:hover {
+            transform: translateY(-4px);
+            border-color: rgba(45, 212, 191, 0.54);
+            box-shadow:
+                0 28px 68px rgba(15, 23, 42, 0.36),
+                0 0 0 1px rgba(45, 212, 191, 0.18),
+                0 0 42px rgba(45, 212, 191, 0.22);
+        }
+
+        .eh-hero::before {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 0;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, transparent, #2dd4bf, #ffffff, #8ea4ff, transparent);
+            opacity: 0.48;
+            transform: translateX(-42%);
+            animation: eh-top-pulse 3.2s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .eh-hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(110deg, transparent 0%, rgba(255, 255, 255, 0.2) 42%, transparent 64%),
+                repeating-linear-gradient(
+                    90deg,
+                    rgba(255, 255, 255, 0.055) 0,
+                    rgba(255, 255, 255, 0.055) 1px,
+                    transparent 1px,
+                    transparent 34px
+                );
+            opacity: 0.82;
+            transform: translateX(-120%);
+            animation:
+                eh-sheen 5.2s ease-in-out 700ms infinite,
+                eh-grid-drift 11s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .eh-hero:hover::after {
+            opacity: 1;
+            animation:
+                eh-sheen 2.4s ease-in-out infinite,
+                eh-grid-drift 5.5s linear infinite;
+        }
+
+        .eh-hero > * {
+            position: relative;
+            z-index: 1;
         }
 
         .eh-kicker {
@@ -1888,6 +2045,20 @@ def inject_theme():  # pragma: no cover
             font-weight: 900;
             letter-spacing: 0;
             box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+            animation:
+                eh-float 4.8s ease-in-out infinite,
+                eh-logo-glow 2.8s ease-in-out infinite;
+            transition:
+                transform 220ms ease,
+                box-shadow 220ms ease;
+        }
+
+        .eh-hero:hover .eh-logo {
+            animation: none;
+            transform: translateY(-5px) rotate(-3deg) scale(1.06);
+            box-shadow:
+                0 18px 38px rgba(0, 0, 0, 0.26),
+                0 0 34px rgba(45, 212, 191, 0.46);
         }
 
         .eh-brand-text {
@@ -1953,6 +2124,17 @@ def inject_theme():  # pragma: no cover
             background: var(--soft-panel);
             padding: 16px;
             box-shadow: 0 14px 34px var(--shadow);
+            animation: eh-fade-up 520ms ease-out both;
+            transition:
+                transform 180ms ease,
+                box-shadow 180ms ease,
+                border-color 180ms ease;
+        }
+
+        .eh-stat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 40px var(--shadow);
+            border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
         }
 
         .eh-stat-value {
@@ -1975,6 +2157,19 @@ def inject_theme():  # pragma: no cover
             padding: 18px;
             margin-bottom: 14px;
             box-shadow: 0 14px 34px var(--shadow);
+            animation: eh-fade-up 560ms ease-out both;
+            transition:
+                transform 180ms ease,
+                box-shadow 180ms ease,
+                border-color 180ms ease;
+        }
+
+        .eh-card:hover {
+            transform: translateY(-3px);
+            box-shadow:
+                0 18px 42px var(--shadow),
+                0 0 30px color-mix(in srgb, var(--accent, var(--brand)) 14%, transparent);
+            border-color: color-mix(in srgb, var(--accent, var(--brand)) 26%, var(--line));
         }
 
         .eh-exam-card {
@@ -1982,16 +2177,62 @@ def inject_theme():  # pragma: no cover
         }
 
         .eh-result-card {
-            height: 300px;
+            height: 328px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
         }
 
+        .eh-exam-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .eh-exam-logo {
+            width: 54px;
+            height: 54px;
+            flex: 0 0 54px;
+            border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(135deg, var(--accent-bg), rgba(255, 255, 255, 0.72)),
+                var(--soft-panel);
+            color: var(--accent);
+            font-size: 0.78rem;
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            overflow-wrap: anywhere;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            animation: eh-logo-pop 520ms cubic-bezier(0.2, 0.9, 0.2, 1.15) both;
+            transition:
+                transform 180ms ease,
+                box-shadow 180ms ease,
+                background 180ms ease;
+        }
+
+        .eh-card:hover .eh-exam-logo {
+            transform: scale(1.06) rotate(-2deg);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.68),
+                0 10px 22px color-mix(in srgb, var(--accent) 28%, transparent),
+                0 0 18px color-mix(in srgb, var(--accent) 30%, transparent);
+        }
+
+        .eh-exam-title-block {
+            min-width: 0;
+            flex: 1;
+        }
+
         .eh-result-card h3 {
-            min-height: 3.4rem;
-            max-height: 3.4rem;
+            min-height: 3.55rem;
+            max-height: 3.55rem;
             overflow: hidden;
             display: -webkit-box;
             -webkit-box-orient: vertical;
@@ -2106,6 +2347,7 @@ def inject_theme():  # pragma: no cover
             background: var(--soft-panel);
             padding: 16px;
             min-height: 126px;
+            animation: eh-fade-up 520ms ease-out both;
         }
 
         .eh-info-panel-wide {
@@ -2131,6 +2373,16 @@ def inject_theme():  # pragma: no cover
             background: var(--soft-panel);
             padding: 14px;
             margin-bottom: 12px;
+            transition:
+                transform 180ms ease,
+                border-color 180ms ease,
+                box-shadow 180ms ease;
+        }
+
+        .eh-book-card:hover {
+            transform: translateX(3px);
+            border-color: color-mix(in srgb, var(--brand-2) 30%, var(--line));
+            box-shadow: 0 10px 24px var(--shadow);
         }
 
         .eh-book-title {
@@ -2170,6 +2422,13 @@ def inject_theme():  # pragma: no cover
             font-size: 0.75rem;
             font-weight: 700;
             padding: 6px 10px;
+            transition:
+                transform 160ms ease,
+                background 160ms ease;
+        }
+
+        .eh-pill:hover {
+            transform: translateY(-1px);
         }
 
         .eh-category-pill {
@@ -2293,6 +2552,92 @@ def inject_theme():  # pragma: no cover
             }
         }
 
+        @keyframes eh-fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes eh-logo-pop {
+            from {
+                opacity: 0;
+                transform: scale(0.82);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes eh-float {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes eh-logo-glow {
+            0%,
+            100% {
+                box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+            }
+            50% {
+                box-shadow:
+                    0 16px 34px rgba(0, 0, 0, 0.22),
+                    0 0 24px rgba(45, 212, 191, 0.4);
+            }
+        }
+
+        @keyframes eh-hero-gradient {
+            0%,
+            100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes eh-top-pulse {
+            0%,
+            100% {
+                opacity: 0.42;
+                transform: translateX(-42%);
+            }
+            50% {
+                opacity: 1;
+                transform: translateX(42%);
+            }
+        }
+
+        @keyframes eh-grid-drift {
+            from {
+                background-position: 0 0, 0 0;
+            }
+            to {
+                background-position: 0 0, 68px 0;
+            }
+        }
+
+        @keyframes eh-sheen {
+            0%,
+            38% {
+                transform: translateX(-120%);
+            }
+            62%,
+            100% {
+                transform: translateX(120%);
+            }
+        }
+
         @keyframes eh-spin {
             from {
                 transform: rotate(0deg);
@@ -2320,6 +2665,17 @@ def inject_theme():  # pragma: no cover
 
             .eh-hero h1 {
                 font-size: 2.25rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 1ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 1ms !important;
             }
         }
         </style>
@@ -2387,10 +2743,16 @@ def render_exam_preview(exam, language_code):  # pragma: no cover
     category = translate_text(exam["category"], language_code)
     exam_mode = translate_text(exam.get("examMode", tr("check_notice", language_code)), language_code)
     duration = translate_text(exam.get("duration", tr("check_notice", language_code)), language_code)
+    logo_text = escape(exam.get("logoText", make_exam_logo_text(exam)))
     st.markdown(
         f"""
         <div class="eh-card eh-exam-card eh-result-card" style="--accent: {accent}; --accent-bg: {accent}18;">
-            <h3>{escape(translate_text(exam["name"], language_code))}</h3>
+            <div class="eh-exam-header">
+                <div class="eh-exam-logo" aria-label="{escape(exam["name"])} logo">{logo_text}</div>
+                <div class="eh-exam-title-block">
+                    <h3>{escape(translate_text(exam["name"], language_code))}</h3>
+                </div>
+            </div>
             <p>{escape(translate_text(exam["description"], language_code))}</p>
             <div class="eh-pill-row">
                 <span class="eh-pill eh-category-pill">{escape(category)}</span>
@@ -2451,6 +2813,7 @@ def load_exams():
         item = deepcopy(exam)
         short_name = item["name"].split("(")[0].strip()
         item["id"] = index
+        item["logoText"] = make_exam_logo_text(item)
         item["pyq"] = make_pyqs(short_name)
         item["applicationSteps"] = APPLICATION_STEPS
         exams.append(item)
@@ -2467,14 +2830,20 @@ def render_exam_details(exam, language_code):  # pragma: no cover
     accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
     category = translate_text(exam["category"], language_code)
     frequency = translate_text(exam.get("frequency", tr("check_notice", language_code)), language_code)
+    logo_text = escape(exam.get("logoText", make_exam_logo_text(exam)))
     st.markdown(
         f"""
         <div class="eh-card eh-exam-card" style="--accent: {accent}; --accent-bg: {accent}18;">
-            <div class="eh-pill-row" style="margin: 0 0 12px;">
-                <span class="eh-pill eh-category-pill">{escape(category)}</span>
-                <span class="eh-pill">{escape(frequency)}</span>
+            <div class="eh-exam-header">
+                <div class="eh-exam-logo" aria-label="{escape(exam["name"])} logo">{logo_text}</div>
+                <div class="eh-exam-title-block">
+                    <div class="eh-pill-row" style="margin: 0 0 12px;">
+                        <span class="eh-pill eh-category-pill">{escape(category)}</span>
+                        <span class="eh-pill">{escape(frequency)}</span>
+                    </div>
+                    <h3>{escape(translate_text(exam["name"], language_code))}</h3>
+                </div>
             </div>
-            <h3>{escape(translate_text(exam["name"], language_code))}</h3>
             <p>{escape(translate_text(exam["description"], language_code))}</p>
         </div>
         """,
