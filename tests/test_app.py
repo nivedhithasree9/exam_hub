@@ -10,6 +10,32 @@ def test_make_pyqs_generates_search_links_and_files():
     assert papers[0]["file"] == "/papers/jee-main-2025.pdf"
 
 
+def test_make_book_links_generates_shopping_searches():
+    links = app.make_book_links("GMAT Official Guide")
+
+    assert links["Amazon"] == "https://www.amazon.in/s?k=GMAT+Official+Guide"
+    assert links["Flipkart"] == "https://www.flipkart.com/search?q=GMAT+Official+Guide"
+
+
+def test_tr_uses_language_value_and_english_fallback():
+    assert app.tr("search_exams", "hi") == "परीक्षा खोजें"
+    assert app.tr("curated_exams", "hi") == "Curated exams"
+
+
+def test_translate_text_returns_english_without_translation():
+    assert app.translate_text("Exam Hub", "en") == "Exam Hub"
+
+
+def test_translate_text_falls_back_when_translation_request_fails(monkeypatch):
+    def fail_request(*_args, **_kwargs):
+        raise TimeoutError
+
+    monkeypatch.setattr(app, "urlopen", fail_request)
+    app.translate_text.clear()
+
+    assert app.translate_text("Exam Hub", "hi") == "Exam Hub"
+
+
 def test_exam_record_adds_defaults_and_custom_fields():
     exam = app.exam_record(
         name="Sample Exam",

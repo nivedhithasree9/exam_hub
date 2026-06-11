@@ -1,6 +1,9 @@
 from copy import deepcopy
 from html import escape
-from urllib.parse import quote_plus
+from json import JSONDecodeError, loads
+from urllib.error import HTTPError, URLError
+from urllib.parse import quote_plus, urlencode
+from urllib.request import urlopen
 
 import streamlit as st
 
@@ -23,6 +26,14 @@ def make_pyqs(prefix):
             }
         )
     return papers
+
+
+def make_book_links(book):
+    query = quote_plus(book)
+    return {
+        "Amazon": f"https://www.amazon.in/s?k={query}",
+        "Flipkart": f"https://www.flipkart.com/search?q={query}",
+    }
 
 
 APPLICATION_STEPS = [
@@ -1449,25 +1460,310 @@ CATEGORY_ACCENTS = {
 }
 
 
+LANGUAGES = {
+    "English": "en",
+    "Hindi": "hi",
+    "Kannada": "kn",
+    "Tamil": "ta",
+    "Telugu": "te",
+    "Malayalam": "ml",
+    "Marathi": "mr",
+    "Bengali": "bn",
+    "Gujarati": "gu",
+    "Punjabi": "pa",
+    "Urdu": "ur",
+    "Spanish": "es",
+    "French": "fr",
+}
+
+
+UI_TEXT = {
+    "en": {
+        "app_tagline": "Find the right exam path faster.",
+        "language": "Language",
+        "search_exams": "Search exams",
+        "category": "Category",
+        "total_exams": "Total exams",
+        "categories": "Categories",
+        "hero_kicker": "Plan. Compare. Prepare.",
+        "hero_label": "Exam intelligence workspace",
+        "hero_copy": (
+            "Discover, compare, and prepare for competitive exams with structured facts, "
+            "trusted official links, and preparation paths in one focused workspace."
+        ),
+        "curated_exams": "Curated exams",
+        "exam_categories": "Exam categories",
+        "current_matches": "Current matches",
+        "computer_based": "Computer-based exams",
+        "management_exams": "Management exams",
+        "official_links": "Official links included",
+        "paper_search": "Previous year paper search",
+        "matching_exams": "Matching exams",
+        "view_details": "View exam details",
+        "results": "result",
+        "no_results": "No exams found. Try a different search term or category.",
+        "select_prompt": (
+            "Click View exam details on any matching exam to view eligibility, dates, syllabus, and prep guidance."
+        ),
+        "exam_details": "Exam details",
+        "close_details": "Close details",
+        "overview": "Overview",
+        "syllabus": "Syllabus",
+        "preparation": "Preparation",
+        "apply": "Apply",
+        "eligibility": "Eligibility",
+        "exam_pattern": "Exam pattern",
+        "conducted_by": "Conducted by",
+        "frequency": "Frequency",
+        "exam_mode": "Exam mode",
+        "duration": "Duration",
+        "application_mode": "Application mode",
+        "fee": "Fee",
+        "used_for": "Used for",
+        "important_dates": "Important dates",
+        "stage": "Stage",
+        "notification": "Notification",
+        "exam_date": "Exam date",
+        "timeline": "Timeline",
+        "syllabus_focus": "Syllabus focus",
+        "selection_process": "Selection process",
+        "recommended_books": "Recommended books and study material",
+        "book_note": "Compare edition, seller rating, and latest price before buying.",
+        "buy_amazon": "Buy on Amazon",
+        "buy_flipkart": "Buy on Flipkart",
+        "preparation_tips": "Preparation tips",
+        "pyq": "Previous year question papers",
+        "official_website": "Open official website",
+        "how_apply": "How to apply",
+        "check_notice": "Check notice",
+        "check_latest": "Check latest notification",
+        "to_be_announced": "To be announced",
+    },
+    "hi": {
+        "app_tagline": "सही परीक्षा मार्ग तेजी से खोजें।",
+        "language": "भाषा",
+        "search_exams": "परीक्षा खोजें",
+        "category": "श्रेणी",
+        "total_exams": "कुल परीक्षाएं",
+        "categories": "श्रेणियां",
+        "hero_kicker": "योजना बनाएं। तुलना करें। तैयारी करें।",
+        "hero_label": "परीक्षा जानकारी कार्यक्षेत्र",
+        "hero_copy": "संरचित जानकारी, आधिकारिक लिंक और तैयारी मार्ग के साथ प्रतियोगी परीक्षाओं को खोजें, तुलना करें और तैयारी करें।",
+        "matching_exams": "मिलती हुई परीक्षाएं",
+        "view_details": "परीक्षा विवरण देखें",
+        "exam_details": "परीक्षा विवरण",
+        "close_details": "विवरण बंद करें",
+        "overview": "सारांश",
+        "syllabus": "पाठ्यक्रम",
+        "preparation": "तैयारी",
+        "apply": "आवेदन",
+        "eligibility": "योग्यता",
+        "exam_pattern": "परीक्षा पैटर्न",
+        "important_dates": "महत्वपूर्ण तिथियां",
+        "recommended_books": "अनुशंसित पुस्तकें और अध्ययन सामग्री",
+        "buy_amazon": "Amazon पर खरीदें",
+        "buy_flipkart": "Flipkart पर खरीदें",
+    },
+    "kn": {
+        "app_tagline": "ಸರಿಯಾದ ಪರೀಕ್ಷಾ ಮಾರ್ಗವನ್ನು ಬೇಗ ಕಂಡುಕೊಳ್ಳಿ.",
+        "language": "ಭಾಷೆ",
+        "search_exams": "ಪರೀಕ್ಷೆಗಳನ್ನು ಹುಡುಕಿ",
+        "category": "ವರ್ಗ",
+        "matching_exams": "ಹೊಂದುವ ಪರೀಕ್ಷೆಗಳು",
+        "view_details": "ಪರೀಕ್ಷೆಯ ವಿವರ ನೋಡಿ",
+        "exam_details": "ಪರೀಕ್ಷೆಯ ವಿವರಗಳು",
+        "overview": "ಸಾರಾಂಶ",
+        "syllabus": "ಪಠ್ಯಕ್ರಮ",
+        "preparation": "ತಯಾರಿ",
+        "apply": "ಅರ್ಜಿ",
+    },
+    "ta": {
+        "app_tagline": "சரியான தேர்வு பாதையை விரைவாக கண்டறியுங்கள்.",
+        "language": "மொழி",
+        "search_exams": "தேர்வுகளை தேடுங்கள்",
+        "category": "வகை",
+        "matching_exams": "பொருந்தும் தேர்வுகள்",
+        "view_details": "தேர்வு விவரங்களை காண்க",
+        "exam_details": "தேர்வு விவரங்கள்",
+        "overview": "கண்ணோட்டம்",
+        "syllabus": "பாடத்திட்டம்",
+        "preparation": "தயாரிப்பு",
+        "apply": "விண்ணப்பம்",
+    },
+    "te": {
+        "app_tagline": "సరైన పరీక్ష మార్గాన్ని త్వరగా కనుగొనండి.",
+        "language": "భాష",
+        "search_exams": "పరీక్షలను వెతకండి",
+        "category": "వర్గం",
+        "matching_exams": "సరిపోయే పరీక్షలు",
+        "view_details": "పరీక్ష వివరాలు చూడండి",
+        "exam_details": "పరీక్ష వివరాలు",
+        "overview": "అవలోకనం",
+        "syllabus": "సిలబస్",
+        "preparation": "తయారీ",
+        "apply": "దరఖాస్తు",
+    },
+    "ml": {
+        "app_tagline": "ശരിയായ പരീക്ഷാ വഴി വേഗത്തിൽ കണ്ടെത്തുക.",
+        "language": "ഭാഷ",
+        "search_exams": "പരീക്ഷകൾ തിരയുക",
+        "category": "വിഭാഗം",
+        "matching_exams": "പൊരുത്തപ്പെടുന്ന പരീക്ഷകൾ",
+        "view_details": "പരീക്ഷാ വിവരങ്ങൾ കാണുക",
+        "exam_details": "പരീക്ഷാ വിവരങ്ങൾ",
+        "overview": "അവലോകനം",
+        "syllabus": "സിലബസ്",
+        "preparation": "തയ്യാറെടുപ്പ്",
+        "apply": "അപേക്ഷ",
+    },
+    "mr": {
+        "app_tagline": "योग्य परीक्षा मार्ग लवकर शोधा.",
+        "language": "भाषा",
+        "search_exams": "परीक्षा शोधा",
+        "category": "वर्ग",
+        "matching_exams": "जुळणाऱ्या परीक्षा",
+        "view_details": "परीक्षेचे तपशील पहा",
+        "exam_details": "परीक्षेचे तपशील",
+        "overview": "आढावा",
+        "syllabus": "अभ्यासक्रम",
+        "preparation": "तयारी",
+        "apply": "अर्ज",
+    },
+    "bn": {
+        "app_tagline": "সঠিক পরীক্ষার পথ দ্রুত খুঁজুন।",
+        "language": "ভাষা",
+        "search_exams": "পরীক্ষা খুঁজুন",
+        "category": "বিভাগ",
+        "matching_exams": "মিল থাকা পরীক্ষা",
+        "view_details": "পরীক্ষার বিবরণ দেখুন",
+        "exam_details": "পরীক্ষার বিবরণ",
+        "overview": "সারাংশ",
+        "syllabus": "সিলেবাস",
+        "preparation": "প্রস্তুতি",
+        "apply": "আবেদন",
+    },
+    "gu": {
+        "app_tagline": "યોગ્ય પરીક્ષા માર્ગ ઝડપથી શોધો.",
+        "language": "ભાષા",
+        "search_exams": "પરીક્ષા શોધો",
+        "category": "વર્ગ",
+        "matching_exams": "મેળ ખાતી પરીક્ષાઓ",
+        "view_details": "પરીક્ષાની વિગતો જુઓ",
+        "exam_details": "પરીક્ષાની વિગતો",
+        "overview": "સારાંશ",
+        "syllabus": "અભ્યાસક્રમ",
+        "preparation": "તૈયારી",
+        "apply": "અરજી",
+    },
+    "pa": {
+        "app_tagline": "ਸਹੀ ਪ੍ਰੀਖਿਆ ਰਾਹ ਜਲਦੀ ਲੱਭੋ।",
+        "language": "ਭਾਸ਼ਾ",
+        "search_exams": "ਪ੍ਰੀਖਿਆਵਾਂ ਖੋਜੋ",
+        "category": "ਸ਼੍ਰੇਣੀ",
+        "matching_exams": "ਮਿਲਦੀਆਂ ਪ੍ਰੀਖਿਆਵਾਂ",
+        "view_details": "ਪ੍ਰੀਖਿਆ ਵੇਰਵੇ ਵੇਖੋ",
+        "exam_details": "ਪ੍ਰੀਖਿਆ ਵੇਰਵੇ",
+        "overview": "ਝਲਕ",
+        "syllabus": "ਸਿਲੇਬਸ",
+        "preparation": "ਤਿਆਰੀ",
+        "apply": "ਅਰਜ਼ੀ",
+    },
+    "ur": {
+        "app_tagline": "صحیح امتحان کا راستہ تیزی سے تلاش کریں۔",
+        "language": "زبان",
+        "search_exams": "امتحانات تلاش کریں",
+        "category": "زمرہ",
+        "matching_exams": "ملتے جلتے امتحانات",
+        "view_details": "امتحان کی تفصیل دیکھیں",
+        "exam_details": "امتحان کی تفصیلات",
+        "overview": "جائزہ",
+        "syllabus": "نصاب",
+        "preparation": "تیاری",
+        "apply": "درخواست",
+    },
+    "es": {
+        "app_tagline": "Encuentra más rápido tu camino de examen.",
+        "language": "Idioma",
+        "search_exams": "Buscar exámenes",
+        "category": "Categoría",
+        "matching_exams": "Exámenes coincidentes",
+        "view_details": "Ver detalles del examen",
+        "exam_details": "Detalles del examen",
+        "overview": "Resumen",
+        "syllabus": "Temario",
+        "preparation": "Preparación",
+        "apply": "Aplicar",
+    },
+    "fr": {
+        "app_tagline": "Trouvez plus vite le bon parcours d'examen.",
+        "language": "Langue",
+        "search_exams": "Rechercher des examens",
+        "category": "Catégorie",
+        "matching_exams": "Examens correspondants",
+        "view_details": "Voir les détails",
+        "exam_details": "Détails de l'examen",
+        "overview": "Aperçu",
+        "syllabus": "Programme",
+        "preparation": "Préparation",
+        "apply": "Postuler",
+    },
+}
+
+
+def tr(key, language_code="en"):
+    return UI_TEXT.get(language_code, {}).get(key, UI_TEXT["en"][key])
+
+
+@st.cache_data(show_spinner=False)
+def translate_text(text, language_code="en"):
+    if language_code == "en" or not text:
+        return text
+    query = urlencode(
+        {
+            "client": "gtx",
+            "sl": "auto",
+            "tl": language_code,
+            "dt": "t",
+            "q": text,
+        }
+    )
+    url = f"https://translate.googleapis.com/translate_a/single?{query}"
+    try:
+        with urlopen(url, timeout=4) as response:  # nosec B310 - fixed HTTPS translation endpoint.
+            payload = loads(response.read().decode("utf-8"))
+        translated = "".join(part[0] for part in payload[0] if part and part[0])
+        return translated or text
+    except (HTTPError, URLError, TimeoutError, JSONDecodeError, UnicodeDecodeError, IndexError, TypeError):
+        return text
+
+
 def inject_theme():  # pragma: no cover
     st.markdown(
         """
         <style>
         :root {
-            --ink: #172033;
-            --muted: #667085;
-            --line: #e6eaf0;
-            --panel: #ffffff;
-            --canvas: #f6f8fb;
-            --brand: #2152ff;
+            --ink: var(--text-color);
+            --muted: color-mix(in srgb, var(--text-color) 60%, transparent);
+            --line: color-mix(in srgb, var(--text-color) 16%, transparent);
+            --panel: var(--secondary-background-color);
+            --panel-2: var(--background-color);
+            --canvas: var(--background-color);
+            --brand: var(--primary-color);
             --brand-2: #00a7a5;
+            --soft-panel: color-mix(in srgb, var(--secondary-background-color) 88%, var(--background-color) 12%);
+            --chip: color-mix(in srgb, var(--text-color) 8%, var(--background-color) 92%);
+            --shadow: color-mix(in srgb, #000000 18%, transparent);
         }
 
         .stApp {
             background:
-                linear-gradient(180deg, rgba(246, 248, 251, 0.96), rgba(246, 248, 251, 1)),
-                radial-gradient(circle at top left, rgba(33, 82, 255, 0.13), transparent 34%),
-                radial-gradient(circle at top right, rgba(0, 167, 165, 0.12), transparent 30%);
+                radial-gradient(circle at top left, color-mix(in srgb, var(--brand) 14%, transparent), transparent 34%),
+                radial-gradient(
+                    circle at top right,
+                    color-mix(in srgb, var(--brand-2) 10%, transparent),
+                    transparent 30%
+                ),
+                var(--background-color);
             color: var(--ink);
         }
 
@@ -1478,16 +1774,76 @@ def inject_theme():  # pragma: no cover
         }
 
         section[data-testid="stSidebar"] {
-            background: #101828;
+            background: var(--secondary-background-color);
+            border-right: 1px solid var(--line);
         }
 
         section[data-testid="stSidebar"] * {
-            color: #f8fafc;
+            color: var(--ink);
         }
 
-        section[data-testid="stSidebar"] input,
-        section[data-testid="stSidebar"] [data-baseweb="select"] * {
-            color: #101828;
+        section[data-testid="stSidebar"] input {
+            background: var(--background-color);
+            color: var(--text-color);
+        }
+
+        section[data-testid="stSidebar"] input::placeholder {
+            color: var(--muted);
+        }
+
+        section[data-testid="stSidebar"] [data-baseweb="select"] > div {
+            background: var(--background-color);
+            border-color: var(--line);
+        }
+
+        section[data-testid="stSidebar"] [data-baseweb="select"] span,
+        section[data-testid="stSidebar"] [data-baseweb="select"] svg {
+            color: var(--text-color);
+            fill: var(--text-color);
+        }
+
+        .stTabs [data-baseweb="tab-list"] {
+            border-bottom: 1px solid var(--line);
+        }
+
+        .stTabs [data-baseweb="tab"] {
+            color: var(--muted);
+        }
+
+        .stTabs [aria-selected="true"] {
+            color: var(--brand);
+        }
+
+        .stButton button,
+        div[data-testid="stButton"] button {
+            border: 1px solid #2152ff !important;
+            background: linear-gradient(135deg, #2152ff, #00a7a5) !important;
+            color: #ffffff !important;
+            font-weight: 850 !important;
+            min-height: 44px !important;
+            border-radius: 10px !important;
+            box-shadow: 0 10px 24px rgba(33, 82, 255, 0.24) !important;
+            opacity: 1 !important;
+        }
+
+        .stButton button p,
+        .stButton button span,
+        div[data-testid="stButton"] button p,
+        div[data-testid="stButton"] button span {
+            color: #ffffff !important;
+            font-weight: 850 !important;
+            opacity: 1 !important;
+        }
+
+        .stButton button:hover,
+        div[data-testid="stButton"] button:hover {
+            border-color: #173ed6 !important;
+            filter: brightness(1.04);
+        }
+
+        div[data-testid="stDataFrame"],
+        div[data-testid="stTable"] {
+            color: var(--ink);
         }
 
         .eh-hero {
@@ -1495,10 +1851,10 @@ def inject_theme():  # pragma: no cover
             border-radius: 18px;
             padding: 30px;
             background:
-                linear-gradient(135deg, rgba(16, 24, 40, 0.96), rgba(33, 82, 255, 0.88)),
-                linear-gradient(45deg, rgba(0, 167, 165, 0.35), transparent);
+                linear-gradient(135deg, rgba(16, 24, 40, 0.98), rgba(37, 70, 202, 0.92)),
+                linear-gradient(45deg, rgba(45, 212, 191, 0.26), transparent);
             color: #ffffff;
-            box-shadow: 0 20px 48px rgba(16, 24, 40, 0.16);
+            box-shadow: 0 22px 54px var(--shadow);
             margin-bottom: 22px;
         }
 
@@ -1563,7 +1919,7 @@ def inject_theme():  # pragma: no cover
         }
 
         .eh-sidebar-name {
-            color: #ffffff;
+            color: var(--ink);
             font-size: 1rem;
             font-weight: 850;
             line-height: 1.1;
@@ -1594,8 +1950,9 @@ def inject_theme():  # pragma: no cover
         .eh-stat {
             border: 1px solid var(--line);
             border-radius: 12px;
-            background: rgba(255, 255, 255, 0.86);
+            background: var(--soft-panel);
             padding: 16px;
+            box-shadow: 0 14px 34px var(--shadow);
         }
 
         .eh-stat-value {
@@ -1614,14 +1971,46 @@ def inject_theme():  # pragma: no cover
         .eh-card {
             border: 1px solid var(--line);
             border-radius: 14px;
-            background: rgba(255, 255, 255, 0.92);
+            background: var(--soft-panel);
             padding: 18px;
             margin-bottom: 14px;
-            box-shadow: 0 10px 28px rgba(16, 24, 40, 0.06);
+            box-shadow: 0 14px 34px var(--shadow);
         }
 
         .eh-exam-card {
             border-left: 5px solid var(--accent);
+        }
+
+        .eh-result-card {
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+
+        .eh-result-card h3 {
+            min-height: 3.4rem;
+            max-height: 3.4rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        .eh-result-card p {
+            min-height: 5.4rem;
+            max-height: 5.4rem;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+        }
+
+        .eh-result-card .eh-pill-row {
+            min-height: 74px;
+            align-content: flex-start;
+            overflow: hidden;
         }
 
         .eh-card h3 {
@@ -1649,7 +2038,11 @@ def inject_theme():  # pragma: no cover
             border: 1px solid var(--line);
             border-radius: 14px;
             background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.82)),
+                linear-gradient(
+                    180deg,
+                    var(--soft-panel),
+                    color-mix(in srgb, var(--panel) 82%, var(--background-color) 18%)
+                ),
                 linear-gradient(135deg, var(--accent-bg), transparent 48%);
             padding: 16px;
             min-height: 118px;
@@ -1681,9 +2074,9 @@ def inject_theme():  # pragma: no cover
         .eh-fact {
             border: 1px solid var(--line);
             border-radius: 12px;
-            background: #ffffff;
+            background: var(--soft-panel);
             padding: 13px;
-            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.05);
+            box-shadow: 0 10px 24px var(--shadow);
         }
 
         .eh-fact-label {
@@ -1710,7 +2103,7 @@ def inject_theme():  # pragma: no cover
         .eh-info-panel {
             border: 1px solid var(--line);
             border-radius: 14px;
-            background: rgba(255, 255, 255, 0.9);
+            background: var(--soft-panel);
             padding: 16px;
             min-height: 126px;
         }
@@ -1727,9 +2120,31 @@ def inject_theme():  # pragma: no cover
         }
 
         .eh-info-copy {
-            color: #344054;
+            color: var(--muted);
             font-size: 0.95rem;
             line-height: 1.55;
+        }
+
+        .eh-book-card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--soft-panel);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .eh-book-title {
+            color: var(--ink);
+            font-size: 0.95rem;
+            font-weight: 850;
+            line-height: 1.35;
+            margin-bottom: 6px;
+        }
+
+        .eh-book-note {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-bottom: 10px;
         }
 
         .eh-chip-list {
@@ -1750,8 +2165,8 @@ def inject_theme():  # pragma: no cover
             display: inline-flex;
             align-items: center;
             border-radius: 999px;
-            background: rgba(16, 24, 40, 0.06);
-            color: #344054;
+            background: var(--chip);
+            color: var(--ink);
             font-size: 0.75rem;
             font-weight: 700;
             padding: 6px 10px;
@@ -1777,7 +2192,114 @@ def inject_theme():  # pragma: no cover
         .eh-step {
             border-left: 3px solid var(--brand-2);
             padding-left: 12px;
-            color: #344054;
+            color: var(--muted);
+        }
+
+        .eh-insight-grid {
+            display: grid;
+            grid-template-columns: 0.9fr 1.1fr;
+            gap: 14px;
+            margin: 8px 0 18px;
+        }
+
+        .eh-orbit {
+            position: relative;
+            min-height: 210px;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background:
+                radial-gradient(circle at center, color-mix(in srgb, var(--brand) 20%, transparent), transparent 42%),
+                var(--soft-panel);
+            overflow: hidden;
+        }
+
+        .eh-orbit::before,
+        .eh-orbit::after {
+            content: "";
+            position: absolute;
+            inset: 34px;
+            border: 1px solid color-mix(in srgb, var(--brand) 34%, transparent);
+            border-radius: 50%;
+            animation: eh-spin 12s linear infinite;
+        }
+
+        .eh-orbit::after {
+            inset: 58px;
+            border-color: color-mix(in srgb, var(--brand-2) 40%, transparent);
+            animation-duration: 8s;
+            animation-direction: reverse;
+        }
+
+        .eh-orbit-core {
+            position: absolute;
+            inset: 50%;
+            width: 86px;
+            height: 86px;
+            transform: translate(-50%, -50%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 1.4rem;
+            box-shadow: 0 16px 36px var(--shadow);
+            z-index: 1;
+        }
+
+        .eh-bars {
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            background: var(--soft-panel);
+            padding: 16px;
+        }
+
+        .eh-bar-row {
+            margin-bottom: 14px;
+        }
+
+        .eh-bar-label {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--ink);
+            font-size: 0.82rem;
+            font-weight: 800;
+            margin-bottom: 7px;
+        }
+
+        .eh-bar-track {
+            height: 10px;
+            border-radius: 999px;
+            background: color-mix(in srgb, var(--text-color) 10%, var(--background-color) 90%);
+            overflow: hidden;
+        }
+
+        .eh-bar-fill {
+            height: 100%;
+            width: var(--value);
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--brand), var(--brand-2));
+            animation: eh-grow 900ms ease-out both;
+        }
+
+        @keyframes eh-grow {
+            from {
+                width: 0;
+            }
+            to {
+                width: var(--value);
+            }
+        }
+
+        @keyframes eh-spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         @media (max-width: 900px) {
@@ -1787,7 +2309,8 @@ def inject_theme():  # pragma: no cover
 
             .eh-passport,
             .eh-fact-grid,
-            .eh-info-grid {
+            .eh-info-grid,
+            .eh-insight-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -1805,21 +2328,20 @@ def inject_theme():  # pragma: no cover
     )
 
 
-def render_hero():  # pragma: no cover
+def render_hero(language_code):  # pragma: no cover
     st.markdown(
-        """
+        f"""
         <div class="eh-hero">
             <div class="eh-brand">
                 <div class="eh-logo">EH</div>
                 <div>
-                    <div class="eh-brand-text">Exam intelligence workspace</div>
-                    <div class="eh-kicker">Plan. Compare. Prepare.</div>
+                    <div class="eh-brand-text">{escape(tr("hero_label", language_code))}</div>
+                    <div class="eh-kicker">{escape(tr("hero_kicker", language_code))}</div>
                 </div>
             </div>
             <h1>Exam Hub</h1>
             <p>
-                Discover, compare, and prepare for competitive exams with structured facts,
-                trusted official links, and preparation paths in one focused workspace.
+                {escape(tr("hero_copy", language_code))}
             </p>
         </div>
         """,
@@ -1827,7 +2349,7 @@ def render_hero():  # pragma: no cover
     )
 
 
-def render_stat_grid(exams, filtered_exams, categories):  # pragma: no cover
+def render_stat_grid(exams, filtered_exams, categories, language_code):  # pragma: no cover
     management_count = sum(1 for exam in exams if exam["category"] == "Management")
     online_count = sum(1 for exam in exams if "computer" in exam.get("examMode", "").lower())
     st.markdown(
@@ -1835,71 +2357,91 @@ def render_stat_grid(exams, filtered_exams, categories):  # pragma: no cover
         <div class="eh-stat-grid">
             <div class="eh-stat">
                 <div class="eh-stat-value">{len(exams)}</div>
-                <div class="eh-stat-label">Curated exams</div>
+                <div class="eh-stat-label">{escape(tr("curated_exams", language_code))}</div>
             </div>
             <div class="eh-stat">
                 <div class="eh-stat-value">{len(categories) - 1}</div>
-                <div class="eh-stat-label">Exam categories</div>
+                <div class="eh-stat-label">{escape(tr("exam_categories", language_code))}</div>
             </div>
             <div class="eh-stat">
                 <div class="eh-stat-value">{len(filtered_exams)}</div>
-                <div class="eh-stat-label">Current matches</div>
+                <div class="eh-stat-label">{escape(tr("current_matches", language_code))}</div>
             </div>
             <div class="eh-stat">
                 <div class="eh-stat-value">{online_count}</div>
-                <div class="eh-stat-label">Computer-based exams</div>
+                <div class="eh-stat-label">{escape(tr("computer_based", language_code))}</div>
             </div>
         </div>
         <div class="eh-pill-row">
-            <span class="eh-pill">Management exams: {management_count}</span>
-            <span class="eh-pill">Official links included</span>
-            <span class="eh-pill">Previous year paper search</span>
+            <span class="eh-pill">{escape(tr("management_exams", language_code))}: {management_count}</span>
+            <span class="eh-pill">{escape(tr("official_links", language_code))}</span>
+            <span class="eh-pill">{escape(tr("paper_search", language_code))}</span>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def render_exam_preview(exam):  # pragma: no cover
+def render_exam_preview(exam, language_code):  # pragma: no cover
     accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
+    category = translate_text(exam["category"], language_code)
+    exam_mode = translate_text(exam.get("examMode", tr("check_notice", language_code)), language_code)
+    duration = translate_text(exam.get("duration", tr("check_notice", language_code)), language_code)
     st.markdown(
         f"""
-        <div class="eh-card eh-exam-card" style="--accent: {accent}; --accent-bg: {accent}18;">
-            <h3>{escape(exam["name"])}</h3>
-            <p>{escape(exam["description"])}</p>
+        <div class="eh-card eh-exam-card eh-result-card" style="--accent: {accent}; --accent-bg: {accent}18;">
+            <h3>{escape(translate_text(exam["name"], language_code))}</h3>
+            <p>{escape(translate_text(exam["description"], language_code))}</p>
             <div class="eh-pill-row">
-                <span class="eh-pill eh-category-pill">{escape(exam["category"])}</span>
-                <span class="eh-pill">{escape(exam.get("examMode", "Check notice"))}</span>
-                <span class="eh-pill">{escape(exam.get("duration", "Check notice"))}</span>
+                <span class="eh-pill eh-category-pill">{escape(category)}</span>
+                <span class="eh-pill">{escape(exam_mode)}</span>
+                <span class="eh-pill">{escape(duration)}</span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-
-
-def render_fact_cards(facts):  # pragma: no cover
-    cards = []
-    for label, value in facts:
-        cards.append(
-            f"""
-            <div class="eh-fact">
-                <div class="eh-fact-label">{escape(label)}</div>
-                <div class="eh-fact-value">{escape(value or "Check notice")}</div>
-            </div>
-            """
-        )
-    st.markdown(f'<div class="eh-fact-grid">{"".join(cards)}</div>', unsafe_allow_html=True)
 
 
 def render_overview_panel(title, value, wide=False):  # pragma: no cover
     wide_class = " eh-info-panel-wide" if wide else ""
-    return f"""
-    <div class="eh-info-panel{wide_class}">
-        <div class="eh-info-title">{escape(title)}</div>
-        <div class="eh-info-copy">{escape(value)}</div>
-    </div>
-    """
+    return (
+        f'<div class="eh-info-panel{wide_class}">'
+        f'<div class="eh-info-title">{escape(title)}</div>'
+        f'<div class="eh-info-copy">{escape(value)}</div>'
+        "</div>"
+    )
+
+
+def render_section_title(key, language_code):  # pragma: no cover
+    st.markdown(
+        f'<div class="eh-section-title">{escape(tr(key, language_code))}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_book_card(book, language_code):  # pragma: no cover
+    st.markdown(
+        f"""
+        <div class="eh-book-card">
+            <div class="eh-book-title">{escape(translate_text(book, language_code))}</div>
+            <div class="eh-book-note">{escape(tr("book_note", language_code))}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    links = make_book_links(book)
+    amazon_col, flipkart_col = st.columns(2)
+    amazon_col.link_button(tr("buy_amazon", language_code), links["Amazon"], use_container_width=True)
+    flipkart_col.link_button(tr("buy_flipkart", language_code), links["Flipkart"], use_container_width=True)
+
+
+@st.dialog("Exam details", width="large")
+def render_exam_dialog(exam, language_code):  # pragma: no cover
+    render_exam_details(exam, language_code)
+    if st.button(tr("close_details", language_code), use_container_width=True):
+        st.session_state.selected_exam_id = None
+        st.rerun()
 
 
 @st.cache_data
@@ -1921,119 +2463,148 @@ def matches_filters(exam, query, category):
     return query_matches and category_matches
 
 
-def render_exam_details(exam):  # pragma: no cover
+def render_exam_details(exam, language_code):  # pragma: no cover
     accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
+    category = translate_text(exam["category"], language_code)
+    frequency = translate_text(exam.get("frequency", tr("check_notice", language_code)), language_code)
     st.markdown(
         f"""
         <div class="eh-card eh-exam-card" style="--accent: {accent}; --accent-bg: {accent}18;">
             <div class="eh-pill-row" style="margin: 0 0 12px;">
-                <span class="eh-pill eh-category-pill">{escape(exam["category"])}</span>
-                <span class="eh-pill">{escape(exam.get("frequency", "Check notice"))}</span>
+                <span class="eh-pill eh-category-pill">{escape(category)}</span>
+                <span class="eh-pill">{escape(frequency)}</span>
             </div>
-            <h3>{escape(exam["name"])}</h3>
-            <p>{escape(exam["description"])}</p>
+            <h3>{escape(translate_text(exam["name"], language_code))}</h3>
+            <p>{escape(translate_text(exam["description"], language_code))}</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    st.markdown(
-        f"""
-        <div class="eh-passport" style="--accent-bg: {accent}18;">
-            <div class="eh-passport-panel">
-                <div class="eh-passport-label">Best used for</div>
-                <div class="eh-passport-value">{escape(exam["useFor"])}</div>
-            </div>
-            <div class="eh-passport-panel">
-                <div class="eh-passport-label">Application mode</div>
-                <div class="eh-passport-value">{escape(exam.get("applicationMode", "Check notice"))}</div>
-            </div>
-            <div class="eh-passport-panel">
-                <div class="eh-passport-label">Fee</div>
-                <div class="eh-passport-value">{escape(exam.get("fee", "Check notice"))}</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(
+        [
+            tr("overview", language_code),
+            tr("syllabus", language_code),
+            tr("preparation", language_code),
+            tr("apply", language_code),
+        ]
     )
-
-    facts = [
-        ("Conducted by", exam.get("conductedBy")),
-        ("Frequency", exam.get("frequency")),
-        ("Exam mode", exam.get("examMode")),
-        ("Duration", exam.get("duration")),
-    ]
-    render_fact_cards(facts)
-
-    overview_tab, syllabus_tab, prep_tab, apply_tab = st.tabs(["Overview", "Syllabus", "Preparation", "Apply"])
 
     with overview_tab:
+        check_notice = tr("check_notice", language_code)
+        check_latest = tr("check_latest", language_code)
+        overview_panels = [
+            render_overview_panel(
+                tr("eligibility", language_code),
+                translate_text(exam["eligibility"], language_code),
+            ),
+            render_overview_panel(tr("exam_pattern", language_code), translate_text(exam["pattern"], language_code)),
+            render_overview_panel(
+                tr("conducted_by", language_code),
+                translate_text(exam.get("conductedBy", check_notice), language_code),
+            ),
+            render_overview_panel(
+                tr("frequency", language_code),
+                translate_text(exam.get("frequency", check_notice), language_code),
+            ),
+            render_overview_panel(
+                tr("exam_mode", language_code),
+                translate_text(exam.get("examMode", check_notice), language_code),
+            ),
+            render_overview_panel(
+                tr("duration", language_code),
+                translate_text(exam.get("duration", check_notice), language_code),
+            ),
+            render_overview_panel(
+                tr("application_mode", language_code),
+                translate_text(exam.get("applicationMode", check_notice), language_code),
+            ),
+            render_overview_panel(
+                tr("fee", language_code),
+                translate_text(exam.get("fee", check_latest), language_code),
+            ),
+            render_overview_panel(
+                tr("used_for", language_code),
+                translate_text(exam["useFor"], language_code),
+                wide=True,
+            ),
+        ]
         st.markdown(
-            f"""
-            <div class="eh-info-grid">
-                {render_overview_panel("Eligibility", exam["eligibility"])}
-                {render_overview_panel("Exam pattern", exam["pattern"])}
-                {render_overview_panel("Used for", exam["useFor"], wide=True)}
-            </div>
-            """,
+            f'<div class="eh-info-grid">{"".join(overview_panels)}</div>',
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="eh-section-title">Important dates</div>', unsafe_allow_html=True)
+        render_section_title("important_dates", language_code)
         st.table(
             {
-                "Stage": ["Notification", "Exam date"],
-                "Timeline": [
-                    exam["dates"].get("notification", "To be announced"),
-                    exam["dates"].get("examDate", "To be announced"),
+                tr("stage", language_code): [
+                    tr("notification", language_code),
+                    tr("exam_date", language_code),
+                ],
+                tr("timeline", language_code): [
+                    translate_text(
+                        exam["dates"].get("notification", tr("to_be_announced", language_code)),
+                        language_code,
+                    ),
+                    translate_text(
+                        exam["dates"].get("examDate", tr("to_be_announced", language_code)),
+                        language_code,
+                    ),
                 ],
             }
         )
 
     with syllabus_tab:
-        st.markdown('<div class="eh-section-title">Syllabus focus</div>', unsafe_allow_html=True)
+        render_section_title("syllabus_focus", language_code)
         st.markdown(
             '<div class="eh-chip-list">'
-            + "".join(f'<span class="eh-pill">{escape(item)}</span>' for item in exam["syllabus"])
+            + "".join(
+                f'<span class="eh-pill">{escape(translate_text(item, language_code))}</span>'
+                for item in exam["syllabus"]
+            )
             + "</div>",
             unsafe_allow_html=True,
         )
-        st.markdown('<div class="eh-section-title">Selection process</div>', unsafe_allow_html=True)
+        render_section_title("selection_process", language_code)
         st.markdown(
             '<div class="eh-timeline">'
             + "".join(
                 f'<div class="eh-step"><strong>{index:02d}</strong> {escape(step)}</div>'
-                for index, step in enumerate(exam["selectionProcess"], start=1)
+                for index, step in enumerate(
+                    [translate_text(step, language_code) for step in exam["selectionProcess"]],
+                    start=1,
+                )
             )
             + "</div>",
             unsafe_allow_html=True,
         )
 
     with prep_tab:
-        st.markdown('<div class="eh-section-title">Recommended books and study material</div>', unsafe_allow_html=True)
+        render_section_title("recommended_books", language_code)
         for book in exam["books"]:
-            st.markdown(f"- {book}")
-        st.markdown('<div class="eh-section-title">Preparation tips</div>', unsafe_allow_html=True)
+            render_book_card(book, language_code)
+        render_section_title("preparation_tips", language_code)
         for tip in exam["preparationTips"]:
-            st.markdown(f"- {tip}")
-        st.markdown('<div class="eh-section-title">Previous year question papers</div>', unsafe_allow_html=True)
+            st.markdown(f"- {translate_text(tip, language_code)}")
+        render_section_title("pyq", language_code)
         for paper in exam["pyq"]:
             st.link_button(f"{paper['year']} Question Paper", paper["url"])
 
     with apply_tab:
-        st.markdown('<div class="eh-section-title">Application mode</div>', unsafe_allow_html=True)
-        st.write(exam.get("applicationMode", "Check latest notification"))
-        st.markdown('<div class="eh-section-title">Fee</div>', unsafe_allow_html=True)
-        st.write(exam.get("fee", "Check latest notification"))
+        render_section_title("application_mode", language_code)
+        st.write(translate_text(exam.get("applicationMode", tr("check_latest", language_code)), language_code))
+        render_section_title("fee", language_code)
+        st.write(translate_text(exam.get("fee", tr("check_latest", language_code)), language_code))
         if exam.get("officialWebsite"):
-            st.link_button("Open official website", exam["officialWebsite"])
-        st.markdown('<div class="eh-section-title">How to apply</div>', unsafe_allow_html=True)
+            st.link_button(tr("official_website", language_code), exam["officialWebsite"])
+        render_section_title("how_apply", language_code)
         for index, step in enumerate(exam["applicationSteps"], start=1):
-            st.write(f"{index}. {step}")
+            st.write(f"{index}. {translate_text(step, language_code)}")
 
 
 def main():  # pragma: no cover
     st.set_page_config(page_title="Exam Hub", page_icon="EH", layout="wide")
     inject_theme()
+    st.session_state.setdefault("selected_exam_id", None)
 
     exams = load_exams()
     categories = ["All categories"] + sorted({exam["category"] for exam in exams})
@@ -2048,33 +2619,50 @@ def main():  # pragma: no cover
             """,
             unsafe_allow_html=True,
         )
-        st.caption("Find the right exam path faster.")
-        query = st.text_input("Search exams", placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
-        category = st.selectbox("Category", categories)
-        st.metric("Total exams", len(exams))
-        st.metric("Categories", len(categories) - 1)
+        language_name = st.selectbox("Language", list(LANGUAGES), index=0)
+        language_code = LANGUAGES[language_name]
+        st.caption(tr("app_tagline", language_code))
+        query = st.text_input(tr("search_exams", language_code), placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
+        category = st.selectbox(tr("category", language_code), categories)
+        st.metric(tr("total_exams", language_code), len(exams))
+        st.metric(tr("categories", language_code), len(categories) - 1)
 
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]
 
-    render_hero()
-    render_stat_grid(exams, filtered_exams, categories)
+    render_hero(language_code)
+    render_stat_grid(exams, filtered_exams, categories, language_code)
 
-    st.markdown('<div class="eh-section-title">Matching exams</div>', unsafe_allow_html=True)
-    preview_columns = st.columns(3)
-    for column, exam in zip(preview_columns, filtered_exams[:3], strict=False):
-        with column:
-            render_exam_preview(exam)
+    render_section_title("matching_exams", language_code)
+    visible_exams = filtered_exams[:9]
+    for row_start in range(0, len(visible_exams), 3):
+        preview_columns = st.columns(3)
+        for column, exam in zip(preview_columns, visible_exams[row_start : row_start + 3], strict=False):
+            with column:
+                render_exam_preview(exam, language_code)
+                if st.button(
+                    tr("view_details", language_code),
+                    key=f"open_exam_{exam['id']}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    st.session_state.selected_exam_id = exam["id"]
 
-    st.caption(f"{len(filtered_exams)} result{'s' if len(filtered_exams) != 1 else ''}")
+    st.caption(f"{len(filtered_exams)} {tr('results', language_code)}{'s' if len(filtered_exams) != 1 else ''}")
     if not filtered_exams:
-        st.info("No exams found. Try a different search term or category.")
+        st.session_state.selected_exam_id = None
+        st.info(tr("no_results", language_code))
         return
 
-    exam_names = [exam["name"] for exam in filtered_exams]
-    selected_name = st.selectbox("Choose an exam", exam_names)
-    selected_exam = next(exam for exam in filtered_exams if exam["name"] == selected_name)
+    selected_exam = next(
+        (exam for exam in filtered_exams if exam["id"] == st.session_state.selected_exam_id),
+        None,
+    )
 
-    render_exam_details(selected_exam)
+    if selected_exam is None:
+        st.info(tr("select_prompt", language_code))
+        return
+
+    render_exam_dialog(selected_exam, language_code)
 
 
 if __name__ == "__main__":
