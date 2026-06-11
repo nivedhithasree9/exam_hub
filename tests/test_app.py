@@ -63,11 +63,18 @@ def test_exam_record_adds_defaults_and_custom_fields():
     assert exam["preparationTips"]
 
 
+def test_make_exam_logo_text_uses_aliases_and_fallbacks():
+    assert app.make_exam_logo_text({"name": "Joint Entrance Examination (JEE Main)"}) == "JEE"
+    assert app.make_exam_logo_text({"name": "Sample Professional Aptitude Test"}) == "SPAT"
+
+
 def test_load_exams_assigns_ids_pyqs_and_application_steps():
     exams = app.load_exams()
 
     assert exams
     assert exams[0]["id"] == 1
+    assert exams[0]["logoText"] == "JEE"
+    assert all(exam["logoText"] for exam in exams)
     assert exams[0]["pyq"][0]["year"] == 2025
     assert exams[0]["applicationSteps"] == app.APPLICATION_STEPS
     assert len({exam["id"] for exam in exams}) == len(exams)
