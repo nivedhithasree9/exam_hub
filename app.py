@@ -1,10 +1,11 @@
 from copy import deepcopy
 from difflib import SequenceMatcher
 from html import escape
-from json import JSONDecodeError, loads
+from json import JSONDecodeError, dumps, loads
+from os import getenv
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote_plus, urlencode
-from urllib.request import urlopen
+from urllib.request import Request, urlopen
 
 import streamlit as st
 
@@ -43,6 +44,17 @@ def normalize_search_text(text):
 
 def search_tokens(text):
     return normalize_search_text(text).split()
+
+
+AI_PROVIDER_OLLAMA = "Local AI (Ollama)"
+AI_PROVIDER_BYOK = "BYOK tokens (OpenAI-compatible)"
+AI_PROVIDER_OPTIONS = [AI_PROVIDER_OLLAMA, AI_PROVIDER_BYOK]
+DEFAULT_OLLAMA_URL = getenv("OLLAMA_CHAT_ENDPOINT", "http://localhost:11434/api/chat")
+DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.openai.com/v1/chat/completions")
+OPENAI_API_KEYS_URL = "https://platform.openai.com/api-keys"
+OPENAI_CHAT_REFERENCE_URL = "https://platform.openai.com/docs/api-reference/chat/create"
+OPENAI_USAGE_URL = "https://platform.openai.com/usage"
+OPENAI_LIMITS_URL = "https://platform.openai.com/settings/organization/limits"
 
 
 APPLICATION_STEPS = [
@@ -3200,6 +3212,179 @@ def matches_filters(exam, query, category):
     return query_matches and category_matches
 
 
+def build_exam_ai_context(exam):
+    fields = [
+        ("Exam", exam["name"]),
+        ("Category", exam["category"]),
+        ("Description", exam["description"]),
+        ("Eligibility", exam["eligibility"]),
+        ("Pattern", exam["pattern"]),
+        ("Syllabus", ", ".join(exam["syllabus"])),
+        (
+            "Important dates",
+            f"Notification: {exam['dates'].get('notification')}; Exam: {exam['dates'].get('examDate')}",
+        ),
+        ("Conducted by", exam.get("conductedBy", "Check official notice")),
+        ("Duration", exam.get("duration", "Check official notice")),
+        ("Use for", exam.get("useFor", "Check official notice")),
+        ("Selection process", " -> ".join(exam.get("selectionProcess", []))),
+        ("Books", "; ".join(exam.get("books", []))),
+        ("Preparation tips", "; ".join(exam.get("preparationTips", []))),
+    ]
+    return "\n".join(f"{label}: {value}" for label, value in fields if value)
+
+
+def build_ai_prompt(exam, student_goal):
+    goal = student_goal.strip() or "Create a short, practical study plan for this exam."
+    return (
+        "You are an exam preparation mentor for Indian competitive exams. "
+        "Use only the exam reference details below unless you clearly say that a student must verify the latest notice. "
+        "Give concise, actionable guidance with bullets.\n\n"
+        f"{build_exam_ai_context(exam)}\n\n"
+        f"Student request: {goal}"
+    )
+
+
+def post_json(url, payload, headers=None, timeout=45):
+    data = dumps(payload).encode("utf-8")
+    request = Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json", **(headers or {})},
+        method="POST",
+    )
+    with urlopen(request, timeout=timeout) as response:
+        return loads(response.read().decode("utf-8"))
+
+
+def ask_ollama(endpoint, model, prompt):
+    payload = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+    }
+    result = post_json(endpoint, payload)
+    return result.get("message", {}).get("content") or result.get("response", "")
+
+
+def ask_openai_compatible(endpoint, token, model, prompt):
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a concise, careful exam preparation assistant.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+        "temperature": 0.3,
+    }
+    result = post_json(endpoint, payload, {"Authorization": f"Bearer {token}"})
+    choices = result.get("choices", [])
+    if not choices:
+        return ""
+    return choices[0].get("message", {}).get("content", "")
+
+
+def ask_ai(provider, endpoint, token, model, exam, student_goal):
+    prompt = build_ai_prompt(exam, student_goal)
+    if provider == AI_PROVIDER_OLLAMA:
+        return ask_ollama(endpoint, model, prompt)
+    return ask_openai_compatible(endpoint, token, model, prompt)
+
+
+def format_ai_error(provider, endpoint, exc):
+    message = str(exc)
+    status_code = getattr(exc, "code", None)
+    if provider == AI_PROVIDER_OLLAMA and ("10061" in message or "Connection refused" in message):
+        return (
+            "Could not connect to Ollama. Start Ollama on this machine, run "
+            "`ollama pull llama3.2` or `ollama run llama3.2`, then try again. "
+            "If the app is running in Docker, use `http://host.docker.internal:11434/api/chat` "
+            "as the Ollama endpoint."
+        )
+    if provider == AI_PROVIDER_OLLAMA:
+        return f"Ollama request failed for `{endpoint}`: {message}"
+    if status_code == 429:
+        return (
+            "OpenAI returned 429 Too Many Requests. Check that the API key has available billing/quota, "
+            "wait a little before retrying, or choose a different model/provider endpoint. "
+            f"Usage: {OPENAI_USAGE_URL} | Limits: {OPENAI_LIMITS_URL}"
+        )
+    if status_code == 401:
+        return "OpenAI-compatible provider rejected the token. Check that the API token is correct and active."
+    return f"BYOK AI request failed for `{endpoint}`: {message}"
+
+
+def render_ai_assistant(exam):  # pragma: no cover
+    st.subheader("AI study assistant")
+    st.caption("Use local Ollama, or bring your own token for an OpenAI-compatible provider.")
+
+    provider = st.radio(
+        "AI provider",
+        AI_PROVIDER_OPTIONS,
+        horizontal=True,
+        key=f"ai_provider_{exam['id']}",
+    )
+
+    if provider == AI_PROVIDER_OLLAMA:
+        endpoint = st.text_input(
+            "Ollama chat endpoint",
+            value=DEFAULT_OLLAMA_URL,
+            key=f"ollama_endpoint_{exam['id']}",
+        )
+        model = st.text_input("Ollama model", value="llama3.2", key=f"ollama_model_{exam['id']}")
+        token = ""
+    else:
+        st.info(
+            "BYOK means the user brings their own API token. Paste the provider's chat endpoint, model, and token here."
+        )
+        key_col, docs_col, usage_col, limits_col = st.columns(4)
+        key_col.link_button("Get OpenAI API key", OPENAI_API_KEYS_URL, use_container_width=True)
+        docs_col.link_button("Chat API docs", OPENAI_CHAT_REFERENCE_URL, use_container_width=True)
+        usage_col.link_button("API usage", OPENAI_USAGE_URL, use_container_width=True)
+        limits_col.link_button("Rate limits", OPENAI_LIMITS_URL, use_container_width=True)
+        endpoint = st.text_input(
+            "Chat completions endpoint",
+            value=DEFAULT_BYOK_URL,
+            help="OpenAI-compatible example: https://api.openai.com/v1/chat/completions",
+            key=f"byok_endpoint_{exam['id']}",
+        )
+        model = st.text_input(
+            "Model",
+            value="gpt-4o-mini",
+            help="Use a model supported by your selected API provider.",
+            key=f"byok_model_{exam['id']}",
+        )
+        token = st.text_input(
+            "API token",
+            type="password",
+            help="Paste your own token. It is used only for this Streamlit session.",
+            key=f"byok_token_{exam['id']}",
+        )
+
+    student_goal = st.text_area(
+        "What should AI help with?",
+        value=f"Make a 30-day preparation plan for {exam['name']}.",
+        key=f"ai_goal_{exam['id']}",
+    )
+
+    if st.button("Generate AI guidance", key=f"ai_generate_{exam['id']}", type="primary"):
+        if provider == AI_PROVIDER_BYOK and not token:
+            st.warning("Enter your own API token to use the BYOK provider.")
+            return
+        try:
+            with st.spinner("Asking AI..."):
+                answer = ask_ai(provider, endpoint, token, model, exam, student_goal)
+        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
+            st.error(format_ai_error(provider, endpoint, exc))
+            return
+        if answer:
+            st.markdown(answer)
+        else:
+            st.warning("The AI provider returned an empty response.")
+
+
 def render_exam_details(exam, language_code):  # pragma: no cover
     accent = CATEGORY_ACCENTS.get(exam["category"], "#2152ff")
     category = translate_text(exam["category"], language_code)
@@ -3224,11 +3409,12 @@ def render_exam_details(exam, language_code):  # pragma: no cover
         unsafe_allow_html=True,
     )
 
-    overview_tab, syllabus_tab, prep_tab, rules_tab, reservation_tab, apply_tab = st.tabs(
+    overview_tab, syllabus_tab, prep_tab, ai_tab, rules_tab, reservation_tab, apply_tab = st.tabs(
         [
             tr("overview", language_code),
             tr("syllabus", language_code),
             tr("preparation", language_code),
+            "AI Assistant",
             translate_text("Rules", language_code),
             translate_text("Reservation", language_code),
             tr("apply", language_code),
@@ -3336,6 +3522,9 @@ def render_exam_details(exam, language_code):  # pragma: no cover
         render_section_title("pyq", language_code)
         for paper in exam["pyq"]:
             st.link_button(f"{paper['year']} Question Paper", paper["url"])
+
+    with ai_tab:
+        render_ai_assistant(exam)
 
     with rules_tab:
         render_exam_rules(exam, language_code)
