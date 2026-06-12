@@ -91,3 +91,80 @@ def test_matches_filters_by_query_and_category():
     assert app.matches_filters(exam, "engineering", "Engineering")
     assert not app.matches_filters(exam, "medical", "Engineering")
     assert not app.matches_filters(exam, "joint", "Medical")
+
+
+def test_matches_filters_supports_exam_acronyms_and_small_typos():
+    exam = {
+        "name": "National Eligibility cum Entrance Test (NEET UG)",
+        "description": "Medical entrance exam",
+        "category": "Medical",
+        "conductedBy": "National Testing Agency",
+        "logoText": "NEET",
+    }
+
+    assert app.matches_filters(exam, "neet", "All categories")
+    assert app.matches_filters(exam, "neeet", "All categories")
+    assert app.matches_filters(exam, "med", "Medical")
+
+
+def test_build_ai_prompt_includes_exam_context_and_goal():
+    exam = app.load_exams()[0]
+
+    prompt = app.build_ai_prompt(exam, "Build a weekly revision plan.")
+
+    assert "Indian competitive exams" in prompt
+    assert "Joint Entrance Examination (JEE Main)" in prompt
+    assert "Build a weekly revision plan." in prompt
+
+
+def test_ask_ollama_uses_local_chat_payload(monkeypatch):
+    captured = {}
+
+    def fake_post_json(url, payload, headers=None, timeout=45):
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return {"message": {"content": "local answer"}}
+
+    monkeypatch.setattr(app, "post_json", fake_post_json)
+
+    answer = app.ask_ollama("http://localhost:11434/api/chat", "llama3.2", "hello")
+
+    assert answer == "local answer"
+    assert captured["url"] == "http://localhost:11434/api/chat"
+    assert captured["payload"]["model"] == "llama3.2"
+    assert captured["payload"]["stream"] is False
+    assert captured["headers"] is None
+
+
+def test_ask_openai_compatible_sends_bearer_token(monkeypatch):
+    captured = {}
+
+    def fake_post_json(url, payload, headers=None, timeout=45):
+        captured["url"] = url
+        captured["payload"] = payload
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return {"choices": [{"message": {"content": "byok answer"}}]}
+
+    monkeypatch.setattr(app, "post_json", fake_post_json)
+
+    answer = app.ask_openai_compatible("https://example.com/v1/chat/completions", "secret-token", "model-1", "hello")
+
+    assert answer == "byok answer"
+    assert captured["url"] == "https://example.com/v1/chat/completions"
+    assert captured["payload"]["model"] == "model-1"
+    assert captured["headers"] == {"Authorization": "Bearer secret-token"}
+
+
+def test_format_ai_error_explains_ollama_connection_refused():
+    message = app.format_ai_error(
+        app.AI_PROVIDER_OLLAMA,
+        "http://localhost:11434/api/chat",
+        OSError("[WinError 10061] No connection could be made"),
+    )
+
+    assert "Start Ollama" in message
+    assert "ollama run llama3.2" in message
+    assert "host.docker.internal" in message
