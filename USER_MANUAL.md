@@ -17,6 +17,22 @@ Using The App
 5. Open an exam detail view to review eligibility, syllabus, dates, selection
    process, books, application steps, preparation tips, official links, and
    previous year question paper searches.
+6. Use the AI Assistant tab to generate study plans or preparation guidance.
+
+AI Options
+----------
+
+The AI Assistant supports two modes:
+
+- Local AI Inference: run Ollama locally and use the default Ollama chat
+  endpoint, or enter another reachable Ollama endpoint.
+- BYOK: select the OpenAI-compatible option and enter your own API token,
+  endpoint, and model for that session. Use the built-in API key and chat API
+  documentation links if you need to create a token.
+
+API tokens are typed into the Streamlit session and are not saved in project
+files. Always verify AI-generated advice against the latest official exam
+notification.
 
 Notes
 -----
