@@ -17,6 +17,9 @@ exam options quickly before visiting the official notification pages.
 - Read eligibility, syllabus, selection process, preparation tips, application steps,
   recommended books, and official links
 - Open previous year question paper searches from inside the app
+- Generate AI-powered study guidance for a selected exam
+- Use Local AI Inference through Ollama, or BYOK with your own token for an
+  OpenAI-compatible chat completions endpoint
 
 ## Requirements
 
@@ -31,3 +34,18 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py
+```
+
+## AI Options
+
+Open any exam detail view and choose the **AI Assistant** tab.
+
+- Local AI: run Ollama on your machine, keep the provider set to `Local AI
+  (Ollama)`, and use a model such as `llama3.2`.
+- BYOK: choose `BYOK tokens (OpenAI-compatible)`, enter your own API token,
+  endpoint, and model. Tokens are entered in the app session and are not stored
+  in the repository. The app includes links to the OpenAI API keys page and chat
+  completions API docs for users who need an API token.
+
+When running inside Docker, use an Ollama endpoint reachable from the container,
+for example `http://host.docker.internal:11434/api/chat` on Docker Desktop.
