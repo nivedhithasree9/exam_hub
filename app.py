@@ -4,10 +4,42 @@ from html import escape
 from json import JSONDecodeError, dumps, loads
 from os import getenv
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote_plus, urlencode
+from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
 
 import streamlit as st
+
+# Default GROQ endpoint (can be overridden with the GROQ_ENDPOINT env var)
+# This should be a GROQ query language endpoint (e.g., Sanity), not a Groq LLM endpoint.
+DEFAULT_GROQ_URL = getenv("GROQ_ENDPOINT", "")
+
+# AI provider options
+AI_PROVIDER_GEMINI = "Gemini AI"
+AI_PROVIDER_FREE = "Free AI"
+AI_PROVIDER_OLLAMA = "Ollama"
+AI_PROVIDER_BYOK = "BYOK"
+AI_PROVIDER_OPTIONS = [AI_PROVIDER_GEMINI, AI_PROVIDER_BYOK, AI_PROVIDER_FREE, AI_PROVIDER_OLLAMA]
+
+# Default endpoints for Ollama / BYOK (can be overridden with env vars)
+DEFAULT_GEMINI_URL = getenv("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models")
+DEFAULT_GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
+DEFAULT_FREE_AI_URL = getenv("FREE_AI_ENDPOINT", "https://text.pollinations.ai")
+DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/chat")
+DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions")
+DEFAULT_BYOK_MODELS_URL = getenv("BYOK_MODELS_ENDPOINT", "https://api.groq.com/openai/v1/models")
+DEFAULT_BYOK_MODEL = getenv("BYOK_MODEL", "llama-3.3-70b-versatile")
+GROQ_FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "openai/gpt-oss-20b",
+]
+
+# Helpful links (used in the UI)
+OPENAI_API_KEYS_URL = "https://platform.openai.com/account/api-keys"
+OPENAI_CHAT_REFERENCE_URL = "https://platform.openai.com/docs/guides/chat"
+OPENAI_USAGE_URL = "https://platform.openai.com/account/usage"
+OPENAI_LIMITS_URL = "https://platform.openai.com/docs/guides/rate-limits"
+GEMINI_API_KEYS_URL = "https://aistudio.google.com/apikey"
 
 
 def make_pyqs(prefix):
@@ -45,17 +77,171 @@ def normalize_search_text(text):
 def search_tokens(text):
     return normalize_search_text(text).split()
 
+def query_groq(endpoint, token, query):
+    if not endpoint:
+        raise ValueError("GROQ endpoint is required.")
+    separator = "&" if "?" in endpoint else "?"
+    url = f"{endpoint}{separator}query={quote_plus(query)}"
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    request = Request(url, headers=headers, method="GET")
+    with urlopen(request, timeout=45) as response:
+        return loads(response.read().decode("utf-8"))
 
-AI_PROVIDER_OLLAMA = "Local AI (Ollama)"
-AI_PROVIDER_BYOK = "BYOK tokens (OpenAI-compatible)"
-AI_PROVIDER_OPTIONS = [AI_PROVIDER_OLLAMA, AI_PROVIDER_BYOK]
-DEFAULT_OLLAMA_URL = getenv("OLLAMA_CHAT_ENDPOINT", "http://localhost:11434/api/chat")
-DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.openai.com/v1/chat/completions")
-OPENAI_API_KEYS_URL = "https://platform.openai.com/api-keys"
-OPENAI_CHAT_REFERENCE_URL = "https://platform.openai.com/docs/api-reference/chat/create"
-OPENAI_USAGE_URL = "https://platform.openai.com/usage"
-OPENAI_LIMITS_URL = "https://platform.openai.com/settings/organization/limits"
 
+def format_groq_error(endpoint, exc):
+    return f"GROQ request failed for `{endpoint}`: {exc}"
+
+
+def render_gemini_assistant(exam):  # pragma: no cover
+    st.subheader("AI study assistant")
+    st.caption("Use Google Gemini with a free Google AI Studio API key.")
+
+    token = st.text_input(
+        "Enter Gemini API Key",
+        type="password",
+        help="Create a key in Google AI Studio and paste it here.",
+        key=f"gemini_token_{exam['id']}",
+    )
+    st.markdown(f"[Get a Gemini API key here]({GEMINI_API_KEYS_URL})")
+
+    model = st.text_input(
+        "Gemini model",
+        value=DEFAULT_GEMINI_MODEL,
+        help="Google's current text-generation docs show gemini-3.5-flash.",
+        key=f"gemini_model_{exam['id']}",
+    )
+
+    student_goal = st.text_area(
+        "What should AI help with?",
+        value=f"Make a 30-day preparation plan for {exam['name']}",
+        key=f"gemini_goal_{exam['id']}",
+        help="Ask any exam question. Gemini will generate the answer.",
+        height=140,
+    )
+
+    if st.button("Ask Gemini assistant", key=f"gemini_ask_{exam['id']}", type="primary"):
+        clean_token = normalize_api_token(token)
+        if not clean_token:
+            st.warning("Enter your Gemini API key to ask the assistant.")
+            return
+        if not student_goal.strip():
+            st.warning("Ask a question or request a study plan before submitting.")
+            return
+
+        try:
+            prompt = build_ai_prompt(exam, student_goal)
+            with st.spinner("Asking Gemini..."):
+                answer = ask_gemini(clean_token, model, prompt)
+        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
+            st.error(format_gemini_error(exc))
+            return
+
+        if answer:
+            st.markdown("**AI assistant response:**")
+            st.write(answer)
+        else:
+            st.warning("Gemini returned an empty response. Try again.")
+
+
+def render_free_ai_assistant(exam):  # pragma: no cover
+    st.subheader("AI study assistant")
+    st.caption("Ask with Free AI. No API key is required.")
+
+    student_goal = st.text_area(
+        "What should AI help with?",
+        value=f"Make a 30-day preparation plan for {exam['name']}",
+        key=f"free_ai_goal_{exam['id']}",
+        help="Ask a question about this exam or request a study timetable.",
+        height=140,
+    )
+
+    if st.button("Ask free AI assistant", key=f"free_ai_ask_{exam['id']}", type="primary"):
+        if not student_goal.strip():
+            st.warning("Ask a question or request a study plan before submitting.")
+            return
+
+        try:
+            prompt = build_ai_prompt(exam, student_goal)
+            with st.spinner("Asking Free AI..."):
+                answer = ask_free_ai(prompt)
+        except (HTTPError, URLError, TimeoutError, OSError):
+            st.info("Free cloud AI is busy, so Exam Hub generated a built-in answer.")
+            answer = build_local_study_response(exam, student_goal)
+
+        if answer:
+            st.markdown("**AI assistant response:**")
+            st.write(answer)
+        else:
+            st.warning("Free AI returned an empty response. Try again.")
+
+
+def render_groq_assistant(exam):  # pragma: no cover
+    st.subheader("AI study assistant")
+    st.caption("Enter your Groq API key and ask an exam question or request a study timetable.")
+
+    token = st.text_input(
+        "Enter Groq API Key",
+        type="password",
+        help="Enter the Groq API key used to authenticate the exam AI assistant.",
+        key=f"groq_token_{exam['id']}",
+    )
+
+    model = st.text_input(
+        "Groq model",
+        value=DEFAULT_BYOK_MODEL,
+        help="Groq's official quickstart model is llama-3.3-70b-versatile. Use auto only if you want to try models visible to your key.",
+        key=f"groq_model_{exam['id']}",
+    )
+
+    clean_token = normalize_api_token(token)
+
+    if st.button("Check Groq access", key=f"groq_check_{exam['id']}"):
+        if not clean_token:
+            st.warning("Enter your Groq API key before checking access.")
+        else:
+            try:
+                diagnosis = diagnose_groq_access(clean_token, model)
+            except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
+                st.error(format_ai_error(AI_PROVIDER_BYOK, DEFAULT_BYOK_MODELS_URL, exc))
+            else:
+                if diagnosis["ok"]:
+                    st.success(f"Groq chat works with `{diagnosis['model']}`.")
+                else:
+                    st.info(diagnosis["message"])
+                if diagnosis["models"]:
+                    st.caption("Models visible to this key: " + ", ".join(diagnosis["models"][:8]))
+
+    st.markdown("[Get your free Groq API key here](https://www.groq.com/)")
+
+    student_goal = st.text_area(
+        "What should AI help with?",
+        value=f"Make a 30-day preparation plan for {exam['name']}",
+        key=f"groq_goal_{exam['id']}",
+        help="Ask a question about this exam or request a study timetable.",
+        height=140,
+    )
+
+    if st.button("Ask exam assistant", key=f"groq_ask_{exam['id']}", type="primary"):
+        if not clean_token:
+            st.warning("Enter your Groq API key to ask the assistant.")
+            return
+        if not student_goal.strip():
+            st.warning("Ask a question or request a study plan before submitting.")
+            return
+
+        try:
+            prompt = build_ai_prompt(exam, student_goal)
+            with st.spinner("Contacting the exam assistant..."):
+                answer = ask_groq_with_fallback(clean_token, model, prompt)
+        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
+            st.error(format_ai_error(AI_PROVIDER_BYOK, DEFAULT_BYOK_URL, exc))
+            return
+
+        if answer:
+            st.markdown("**Exam assistant response:**")
+            st.write(answer)
+        else:
+            st.warning("The assistant returned an empty response.")
 
 APPLICATION_STEPS = [
     "Visit the official exam website and open the latest notification.",
@@ -85,26 +271,11 @@ EXAM_DAY_DONTS = [
 ]
 
 RESERVATION_CATEGORIES = [
-    {
-        "title": "SC / ST",
-        "detail": "Reserved seats, relaxed cutoffs, age limits, or fees may apply as per the exam notice.",
-    },
-    {
-        "title": "OBC-NCL",
-        "detail": "Benefits usually apply only for Non-Creamy Layer candidates with a valid certificate.",
-    },
-    {
-        "title": "EWS",
-        "detail": "Economically Weaker Section benefits require an income and asset certificate in the latest format.",
-    },
-    {
-        "title": "PwD",
-        "detail": "Persons with Benchmark Disabilities may get reservation, extra time, scribes, or other facilities.",
-    },
-    {
-        "title": "State / Domicile",
-        "detail": "State exams may include local, rural, women, defence, sports, or institution-specific quotas.",
-    },
+    {"title": "SC / ST", "detail": "Reserved seats, relaxed cutoffs, age limits, or fees may apply as per the exam notice."},
+    {"title": "OBC-NCL", "detail": "Benefits usually apply only for Non-Creamy Layer candidates with a valid certificate."},
+    {"title": "EWS", "detail": "Economically Weaker Section benefits require an income and asset certificate in the latest format."},
+    {"title": "PwD", "detail": "Persons with Benchmark Disabilities may get reservation, extra time, scribes, or other facilities."},
+    {"title": "State / Domicile", "detail": "State exams may include local, rural, women, defence, sports, or institution-specific quotas."},
 ]
 
 RESERVATION_CHECKLIST = [
@@ -122,7 +293,6 @@ OVERVIEW_CHECKLIST = [
     "Keep scanned documents ready before applying so the form can be submitted without last-minute errors.",
 ]
 
-
 BASE_EXAMS = [
     {
         "name": "Joint Entrance Examination (JEE Main)",
@@ -130,72 +300,6 @@ BASE_EXAMS = [
         "description": "Entrance exam for NITs, IIITs, GFTIs, and JEE Advanced qualification.",
         "eligibility": "Passed or appearing in 10+2 with Physics, Chemistry, and Mathematics.",
         "syllabus": ["Physics", "Chemistry", "Mathematics"],
-        "pattern": "Computer-based test with MCQs and numerical value questions.",
-        "books": [
-            "Physics: Concepts of Physics Vol. 1 & 2 - H.C. Verma",
-            "Chemistry: NCERT Class 11 & 12 Chemistry",
-            "Mathematics: Objective Mathematics for JEE - R.D. Sharma",
-            "Practice: Arihant JEE Main Previous Years Solved Papers",
-        ],
-        "dates": {"notification": "November", "examDate": "January / April"},
-        "conductedBy": "National Testing Agency (NTA)",
-        "frequency": "Usually twice a year",
-        "applicationMode": "Online",
-        "examMode": "Computer-based test",
-        "duration": "3 hours",
-        "fee": "Varies by category, paper, and exam city",
-        "officialWebsite": "https://jeemain.nta.nic.in",
-        "useFor": "Admission to NITs, IIITs, GFTIs, and eligibility for JEE Advanced.",
-        "selectionProcess": [
-            "Apply online",
-            "Appear for JEE Main",
-            "Use score for NIT/IIIT/GFTI admission",
-            "Top candidates qualify for JEE Advanced",
-        ],
-        "preparationTips": [
-            "Master NCERT Chemistry",
-            "Practice numerical problems daily",
-            "Analyze mock test mistakes",
-            "Revise formulas frequently",
-        ],
-    },
-    {
-        "name": "Joint Entrance Examination (JEE Advanced)",
-        "category": "Engineering",
-        "description": "National level engineering entrance exam for IIT admissions.",
-        "eligibility": "Qualified JEE Main and passed 10+2 with Physics, Chemistry, and Mathematics.",
-        "syllabus": ["Physics", "Chemistry", "Mathematics"],
-        "pattern": "Two computer-based papers with numerical and objective questions.",
-        "books": [
-            "Physics: Concepts of Physics Vol. 1 & 2 - H.C. Verma",
-            "Physics: Problems in General Physics - I.E. Irodov",
-            "Chemistry: NCERT Class 11 & 12 Chemistry",
-            "Mathematics: Cengage JEE Advanced Mathematics series",
-        ],
-        "dates": {"notification": "April", "examDate": "June"},
-        "conductedBy": "One of the IITs on a rotating basis under JAB",
-        "frequency": "Once a year",
-        "applicationMode": "Online",
-        "examMode": "Computer-based test",
-        "duration": "Two papers of 3 hours each",
-        "fee": "Varies by category and nationality",
-        "officialWebsite": "https://jeeadv.ac.in",
-        "useFor": "Admission to IIT undergraduate engineering and science programs.",
-        "selectionProcess": [
-            "Qualify JEE Main",
-            "Register for JEE Advanced",
-            "Appear for both papers",
-            "Participate in JoSAA counselling",
-        ],
-        "preparationTips": [
-            "Revise JEE Main concepts deeply",
-            "Practice mixed-subject problems",
-            "Solve previous IIT papers",
-            "Take full-length mock tests",
-        ],
-    },
-    {
-        "name": "National Eligibility cum Entrance Test (NEET UG)",
         "category": "Medical",
         "description": "Medical entrance exam for MBBS, BDS, and allied undergraduate courses.",
         "eligibility": "10+2 with Physics, Chemistry, Biology/Biotechnology, and English.",
@@ -1637,10 +1741,12 @@ LANGUAGES = {
 
 UI_TEXT = {
     "en": {
+        "app_name": "Exam Hub",
         "app_tagline": "Find the right exam path faster.",
         "language": "Language",
         "search_exams": "Search exams",
         "category": "Category",
+        "all_categories": "All categories",
         "total_exams": "Total exams",
         "categories": "Categories",
         "hero_kicker": "Plan. Compare. Prepare.",
@@ -1868,8 +1974,49 @@ UI_TEXT = {
 }
 
 
+UI_TEXT["te"].update(
+    {
+        "app_name": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c39\u0c2c\u0c4d",
+        "app_tagline": "\u0c38\u0c30\u0c48\u0c28 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c2e\u0c3e\u0c30\u0c4d\u0c17\u0c3e\u0c28\u0c4d\u0c28\u0c3f \u0c35\u0c47\u0c17\u0c02\u0c17\u0c3e \u0c15\u0c28\u0c41\u0c17\u0c4a\u0c28\u0c02\u0c21\u0c3f.",
+        "language": "\u0c2d\u0c3e\u0c37",
+        "search_exams": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c28\u0c41 \u0c35\u0c46\u0c24\u0c15\u0c02\u0c21\u0c3f",
+        "category": "\u0c35\u0c30\u0c4d\u0c17\u0c02",
+        "all_categories": "\u0c05\u0c28\u0c4d\u0c28\u0c3f \u0c35\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c41",
+        "total_exams": "\u0c2e\u0c4a\u0c24\u0c4d\u0c24\u0c02 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
+        "categories": "\u0c35\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c41",
+        "hero_kicker": "\u0c2a\u0c4d\u0c32\u0c3e\u0c28\u0c4d \u0c1a\u0c47\u0c2f\u0c02\u0c21\u0c3f. \u0c2a\u0c4b\u0c32\u0c4d\u0c1a\u0c02\u0c21\u0c3f. \u0c38\u0c3f\u0c26\u0c4d\u0c27\u0c2e\u0c35\u0c4d\u0c35\u0c02\u0c21\u0c3f.",
+        "hero_label": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c38\u0c2e\u0c3e\u0c1a\u0c3e\u0c30 \u0c35\u0c30\u0c4d\u0c15\u0c4d\u200c\u0c38\u0c4d\u0c2a\u0c47\u0c38\u0c4d",
+        "hero_copy": "\u0c28\u0c3f\u0c30\u0c4d\u0c2e\u0c3e\u0c23\u0c3e\u0c24\u0c4d\u0c2e\u0c15 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41, \u0c28\u0c2e\u0c4d\u0c2e\u0c26\u0c17\u0c3f\u0c28 \u0c05\u0c27\u0c3f\u0c15\u0c3e\u0c30\u0c3f\u0c15 \u0c32\u0c3f\u0c02\u0c15\u0c4d\u0c32\u0c41, \u0c24\u0c2f\u0c3e\u0c30\u0c40 \u0c2e\u0c3e\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c24\u0c4b \u0c2a\u0c4b\u0c1f\u0c40 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c28\u0c41 \u0c24\u0c46\u0c32\u0c41\u0c38\u0c41\u0c15\u0c4b\u0c02\u0c21\u0c3f, \u0c2a\u0c4b\u0c32\u0c4d\u0c1a\u0c02\u0c21\u0c3f, \u0c38\u0c3f\u0c26\u0c4d\u0c27\u0c2e\u0c35\u0c4d\u0c35\u0c02\u0c21\u0c3f.",
+        "curated_exams": "\u0c0e\u0c02\u0c2a\u0c3f\u0c15 \u0c1a\u0c47\u0c38\u0c3f\u0c28 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
+        "exam_categories": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c41",
+        "current_matches": "\u0c2a\u0c4d\u0c30\u0c38\u0c4d\u0c24\u0c41\u0c24 \u0c38\u0c30\u0c3f\u0c2a\u0c4b\u0c32\u0c3f\u0c15\u0c32\u0c41",
+        "computer_based": "\u0c15\u0c02\u0c2a\u0c4d\u0c2f\u0c42\u0c1f\u0c30\u0c4d \u0c06\u0c27\u0c3e\u0c30\u0c3f\u0c24 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
+        "management_exams": "\u0c2e\u0c47\u0c28\u0c47\u0c1c\u0c4d\u200c\u0c2e\u0c46\u0c02\u0c1f\u0c4d \u0c2a\u0c30\u0c40\u0c15\u0c37\u0c32\u0c41",
+        "official_links": "\u0c05\u0c27\u0c3f\u0c15\u0c3e\u0c30\u0c3f\u0c15 \u0c32\u0c3f\u0c02\u0c15\u0c4d\u0c32\u0c41 \u0c1a\u0c47\u0c30\u0c4d\u0c1a\u0c2c\u0c21\u0c4d\u0c21\u0c3e\u0c2f\u0c3f",
+        "paper_search": "\u0c17\u0c24 \u0c38\u0c02\u0c35\u0c24\u0c4d\u0c38\u0c30 \u0c2a\u0c47\u0c2a\u0c30\u0c4d \u0c36\u0c4b\u0c27\u0c28",
+        "matching_exams": "\u0c38\u0c30\u0c3f\u0c2a\u0c4b\u0c2f\u0c47 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
+        "view_details": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41 \u0c1a\u0c42\u0c21\u0c02\u0c21\u0c3f",
+        "results": "\u0c2b\u0c32\u0c3f\u0c24\u0c02",
+        "no_results": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41 \u0c15\u0c28\u0c3f\u0c2a\u0c3f\u0c02\u0c1a\u0c32\u0c47\u0c26\u0c41. \u0c35\u0c47\u0c30\u0c47 \u0c36\u0c4b\u0c27\u0c28 \u0c2a\u0c26\u0c02 \u0c32\u0c47\u0c26\u0c3e \u0c35\u0c30\u0c4d\u0c17\u0c02 \u0c2a\u0c4d\u0c30\u0c2f\u0c24\u0c4d\u0c28\u0c3f\u0c02\u0c1a\u0c02\u0c21\u0c3f.",
+        "select_prompt": "\u0c05\u0c30\u0c4d\u0c39\u0c24, \u0c24\u0c47\u0c26\u0c40\u0c32\u0c41, \u0c38\u0c3f\u0c32\u0c2c\u0c38\u0c4d, \u0c24\u0c2f\u0c3e\u0c30\u0c40 \u0c2e\u0c3e\u0c30\u0c4d\u0c17\u0c26\u0c30\u0c4d\u0c36\u0c15\u0c3e\u0c32\u0c28\u0c41 \u0c1a\u0c42\u0c21\u0c1f\u0c3e\u0c28\u0c3f\u0c15\u0c3f \u0c0f\u0c26\u0c48\u0c28\u0c3e \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c2a\u0c48 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41 \u0c1a\u0c42\u0c21\u0c02\u0c21\u0c3f \u0c28\u0c4a\u0c15\u0c4d\u0c15\u0c02\u0c21\u0c3f.",
+        "exam_details": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41",
+        "close_details": "\u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41 \u0c2e\u0c42\u0c38\u0c3f\u0c35\u0c47\u0c2f\u0c02\u0c21\u0c3f",
+        "overview": "\u0c05\u0c35\u0c32\u0c4b\u0c15\u0c28\u0c02",
+        "syllabus": "\u0c38\u0c3f\u0c32\u0c2c\u0c38\u0c4d",
+        "preparation": "\u0c24\u0c2f\u0c3e\u0c30\u0c40",
+        "apply": "\u0c26\u0c30\u0c16\u0c3e\u0c38\u0c4d\u0c24\u0c41",
+    }
+)
+
+
 def tr(key, language_code="en"):
     return UI_TEXT.get(language_code, {}).get(key, UI_TEXT["en"][key])
+
+
+def category_display_name(category, language_code="en"):
+    if category == "All categories":
+        return tr("all_categories", language_code)
+    return translate_text(category, language_code)
 
 
 @st.cache_data(show_spinner=False)
@@ -2933,7 +3080,7 @@ def render_hero(language_code):  # pragma: no cover
                     <div class="eh-kicker">{escape(tr("hero_kicker", language_code))}</div>
                 </div>
             </div>
-            <h1>Exam Hub</h1>
+            <h1>{escape(tr("app_name", language_code))}</h1>
             <p>
                 {escape(tr("hero_copy", language_code))}
             </p>
@@ -3166,10 +3313,49 @@ def render_exam_dialog(exam, language_code):  # pragma: no cover
         st.rerun()
 
 
+JEE_EXAM = {
+    "name": "Joint Entrance Examination (JEE Main)",
+    "category": "Engineering",
+    "description": "Entrance exam for NITs, IIITs, GFTIs, and JEE Advanced qualification.",
+    "eligibility": "Passed or appearing in 10+2 with Physics, Chemistry, and Mathematics.",
+    "syllabus": ["Physics", "Chemistry", "Mathematics"],
+    "pattern": "Computer-based test with MCQs and numerical value questions.",
+    "dates": {"notification": "November", "examDate": "January / April"},
+    "conductedBy": "National Testing Agency (NTA)",
+    "frequency": "Usually twice a year",
+    "applicationMode": "Online",
+    "examMode": "Computer-based test",
+    "duration": "3 hours",
+    "fee": "Varies by category",
+    "officialWebsite": "https://jeemain.nta.nic.in",
+    "useFor": "Admission to NITs, IIITs, GFTIs, and JEE Advanced qualification.",
+    "selectionProcess": [
+        "Apply online",
+        "Appear for JEE Main",
+        "Use score for NIT/IIIT/GFTI admission",
+        "Top candidates qualify for JEE Advanced",
+    ],
+    "books": [
+        "Physics: Concepts of Physics Vol. 1 & 2 - H.C. Verma",
+        "Chemistry: NCERT Class 11 & 12 Chemistry",
+        "Mathematics: Objective Mathematics for JEE - R.D. Sharma",
+    ],
+    "preparationTips": [
+        "Master NCERT Chemistry",
+        "Practice numerical problems daily",
+        "Analyze mock test mistakes",
+        "Revise formulas frequently",
+    ],
+}
+
 @st.cache_data
 def load_exams():
     exams = []
-    for index, exam in enumerate(BASE_EXAMS + ADDITIONAL_EXAMS, start=1):
+    source = BASE_EXAMS + ADDITIONAL_EXAMS if (BASE_EXAMS or ADDITIONAL_EXAMS) else []
+    # ensure JEE is first
+    deduped = [e for e in source if e.get("name") != JEE_EXAM["name"]]
+    source_exams = [JEE_EXAM] + deduped
+    for index, exam in enumerate(source_exams, start=1):
         item = deepcopy(exam)
         short_name = item["name"].split("(")[0].strip()
         item["id"] = index
@@ -3245,6 +3431,152 @@ def build_ai_prompt(exam, student_goal):
     )
 
 
+def build_local_study_response(exam, student_goal):
+    goal = student_goal.strip() or f"Make a 30-day preparation plan for {exam['name']}."
+    direct_answer = build_local_exam_answer(exam, goal)
+    if direct_answer:
+        return direct_answer
+
+    syllabus = exam.get("syllabus", [])
+    tips = exam.get("preparationTips", [])
+    books = exam.get("books", [])
+    selection_steps = exam.get("selectionProcess", [])
+    weekly_focus = syllabus[:4] or ["Core concepts", "Practice questions", "Revision", "Mock tests"]
+
+    lines = [
+        f"Here is a practical fallback plan for {exam['name']}.",
+        "",
+        f"Goal: {goal}",
+        "",
+        "30-day structure:",
+        f"- Days 1-7: Build basics in {weekly_focus[0]} and make short notes.",
+        f"- Days 8-14: Practice timed questions from {weekly_focus[min(1, len(weekly_focus) - 1)]}.",
+        f"- Days 15-21: Revise {weekly_focus[min(2, len(weekly_focus) - 1)]} and solve previous papers.",
+        f"- Days 22-27: Take full mocks, review mistakes, and update formula/revision sheets.",
+        "- Days 28-30: Light revision, exam-day checklist, and one final mixed practice session.",
+        "",
+        "Daily routine:",
+        "- 2 focused study blocks for concepts.",
+        "- 1 practice block for questions or PYQs.",
+        "- 20 minutes for error-log revision.",
+        "- 10 minutes to plan tomorrow's topics.",
+    ]
+
+    if tips:
+        lines.extend(["", "Preparation priorities:"])
+        lines.extend(f"- {tip}" for tip in tips[:4])
+
+    if books:
+        lines.extend(["", "Useful resources:"])
+        lines.extend(f"- {book}" for book in books[:3])
+
+    if selection_steps:
+        lines.extend(["", "Keep the process in mind:"])
+        lines.extend(f"- {step}" for step in selection_steps[:4])
+
+    lines.extend(["", "Verify dates, fees, eligibility, and documents from the latest official notice."])
+    return "\n".join(lines)
+
+
+def build_local_exam_answer(exam, student_goal):
+    query = normalize_search_text(student_goal)
+    if any(token in query for token in ["useful", "worth", "good"]):
+        category = exam.get("category", "this field")
+        use_for = exam.get("useFor", "Check the latest official notice.")
+        if "engineering" in query or category == "Engineering":
+            return "\n".join(
+                [
+                    f"Yes. {exam['name']} is useful for engineering students.",
+                    "",
+                    f"Why it is useful: {use_for}",
+                    "",
+                    "You should take it if:",
+                    "- You want admission into engineering colleges or related programs.",
+                    "- You want this exam's score for the next admission or qualification step.",
+                    "- Your target colleges, institutes, or recruiters accept this exam.",
+                    "",
+                    "You can skip it only if your target course or college does not use this exam score.",
+                ]
+            )
+        return "\n".join(
+            [
+                f"Yes, {exam['name']} can be useful if your goal matches its purpose.",
+                "",
+                f"Main use: {use_for}",
+                "",
+                "Check whether your target college, job, or program accepts this exam before applying.",
+            ]
+        )
+
+    if any(token in query for token in ["use", "purpose", "benefit", "why", "career", "admission"]):
+        return "\n".join(
+            [
+                f"{exam['name']} is used for: {exam.get('useFor', 'Check the latest official notice.')}",
+                "",
+                f"In simple words, this exam helps students move into {exam.get('category', 'the selected field')} "
+                "admissions, recruitment, or qualification pathways connected with the exam.",
+                "",
+                "Selection path:",
+                *[f"- {step}" for step in exam.get("selectionProcess", [])[:5]],
+                "",
+                "Always verify the latest official notification before applying.",
+            ]
+        )
+
+    if any(token in query for token in ["eligible", "eligibility", "qualification", "qualify"]):
+        return "\n".join(
+            [
+                f"Eligibility for {exam['name']}:",
+                f"- {exam.get('eligibility', 'Check the latest official notice.')}",
+                "",
+                "Also check age limits, category rules, attempt limits, and document requirements in the latest notice.",
+            ]
+        )
+
+    if any(token in query for token in ["syllabus", "subjects", "topics"]):
+        syllabus = exam.get("syllabus", [])
+        return "\n".join(
+            [
+                f"Main syllabus areas for {exam['name']}:",
+                *[f"- {item}" for item in syllabus],
+                "",
+                f"Pattern: {exam.get('pattern', 'Check the latest official notice.')}",
+            ]
+        )
+
+    if any(token in query for token in ["book", "books", "resource", "resources", "study material"]):
+        books = exam.get("books", [])
+        return "\n".join([f"Useful resources for {exam['name']}:", *[f"- {book}" for book in books[:6]]])
+
+    if any(token in query for token in ["date", "dates", "when", "notification"]):
+        dates = exam.get("dates", {})
+        return "\n".join(
+            [
+                f"Important timeline for {exam['name']}:",
+                f"- Notification: {dates.get('notification', 'Check the latest notice')}",
+                f"- Exam: {dates.get('examDate', 'Check the latest notice')}",
+                "",
+                "Use the official website for exact current-year dates.",
+            ]
+        )
+
+    if any(token in query for token in ["pattern", "mode", "duration", "time"]):
+        return "\n".join(
+            [
+                f"Exam pattern for {exam['name']}:",
+                f"- Pattern: {exam.get('pattern', 'Check the latest official notice.')}",
+                f"- Mode: {exam.get('examMode', 'Check the latest official notice.')}",
+                f"- Duration: {exam.get('duration', 'Check the latest official notice.')}",
+            ]
+        )
+
+    if any(token in query for token in ["selection", "process", "steps", "how to apply", "apply"]):
+        steps = exam.get("selectionProcess", [])
+        return "\n".join([f"Selection process for {exam['name']}:", *[f"- {step}" for step in steps]])
+
+    return ""
+
+
 def post_json(url, payload, headers=None, timeout=45):
     data = dumps(payload).encode("utf-8")
     request = Request(
@@ -3255,6 +3587,56 @@ def post_json(url, payload, headers=None, timeout=45):
     )
     with urlopen(request, timeout=timeout) as response:
         return loads(response.read().decode("utf-8"))
+
+
+def normalize_api_token(token):
+    return token.strip() if isinstance(token, str) else ""
+
+
+def ask_free_ai(prompt):
+    query = urlencode(
+        {
+            "model": "openai",
+            "private": "true",
+            "system": "You are a concise, careful exam preparation assistant.",
+        }
+    )
+    url = f"{DEFAULT_FREE_AI_URL.rstrip('/')}/{quote(prompt, safe='')}?{query}"
+    request = Request(url, headers={"User-Agent": "ExamHub/1.0"}, method="GET")
+    with urlopen(request, timeout=60) as response:
+        return response.read().decode("utf-8", errors="replace").strip()
+
+
+def ask_gemini(token, model, prompt):
+    token = normalize_api_token(token)
+    model = model.strip() or DEFAULT_GEMINI_MODEL
+    url = f"{DEFAULT_GEMINI_URL.rstrip('/')}/{quote(model, safe='')}:generateContent"
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": "You are a concise, careful exam preparation assistant."}]
+        },
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"maxOutputTokens": 700},
+    }
+    result = post_json(url, payload, {"x-goog-api-key": token}, timeout=60)
+    candidates = result.get("candidates", [])
+    if not candidates:
+        return ""
+    parts = candidates[0].get("content", {}).get("parts", [])
+    return "\n".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
+
+
+def format_gemini_error(exc):
+    message = extract_provider_error_message(exc) or str(exc)
+    status_code = getattr(exc, "code", None)
+    if status_code in (400, 401, 403):
+        return (
+            "Gemini API request failed. Check that the Gemini API key is copied correctly, "
+            f"enabled in Google AI Studio, and allowed to use `{DEFAULT_GEMINI_MODEL}`. Details: {message}"
+        )
+    if status_code == 429:
+        return "Gemini is rate-limited right now. Wait a minute and try again."
+    return f"Gemini request failed: {message}"
 
 
 def ask_ollama(endpoint, model, prompt):
@@ -3268,6 +3650,7 @@ def ask_ollama(endpoint, model, prompt):
 
 
 def ask_openai_compatible(endpoint, token, model, prompt):
+    token = normalize_api_token(token)
     payload = {
         "model": model,
         "messages": [
@@ -3278,12 +3661,104 @@ def ask_openai_compatible(endpoint, token, model, prompt):
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.3,
+        "max_completion_tokens": 700,
     }
     result = post_json(endpoint, payload, {"Authorization": f"Bearer {token}"})
     choices = result.get("choices", [])
     if not choices:
         return ""
     return choices[0].get("message", {}).get("content", "")
+
+
+def get_openai_compatible_models(endpoint, token):
+    token = normalize_api_token(token)
+    request = Request(endpoint, headers={"Authorization": f"Bearer {token}"}, method="GET")
+    with urlopen(request, timeout=45) as response:
+        result = loads(response.read().decode("utf-8"))
+    return [
+        item["id"]
+        for item in result.get("data", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"].strip()
+    ]
+
+
+def ask_groq_with_fallback(token, model, prompt):
+    token = normalize_api_token(token)
+    requested_model = model.strip()
+    if not requested_model or requested_model.lower() == "auto":
+        available_models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
+        candidate_models = GROQ_FALLBACK_MODELS + available_models
+    else:
+        candidate_models = [requested_model]
+
+    last_error = None
+    tried_models = []
+    for candidate_model in unique_nonempty(candidate_models):
+        tried_models.append(candidate_model)
+        try:
+            return ask_openai_compatible(DEFAULT_BYOK_URL, token, candidate_model, prompt)
+        except HTTPError as exc:
+            last_error = exc
+            if not is_retryable_model_error(exc):
+                raise
+
+            available_models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
+            for available_model in available_models:
+                if available_model not in tried_models:
+                    candidate_models.append(available_model)
+
+    if last_error:
+        raise last_error
+    return ""
+
+
+def diagnose_groq_access(token, model):
+    token = normalize_api_token(token)
+    models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
+    requested_model = model.strip()
+    candidate_models = models if not requested_model or requested_model.lower() == "auto" else [requested_model]
+    last_message = ""
+
+    for candidate_model in unique_nonempty(candidate_models + GROQ_FALLBACK_MODELS):
+        try:
+            ask_openai_compatible(DEFAULT_BYOK_URL, token, candidate_model, "Reply with OK.")
+            return {
+                "ok": True,
+                "model": candidate_model,
+                "models": models,
+                "message": "Groq /models and /chat/completions both worked.",
+            }
+        except HTTPError as exc:
+            last_message = extract_provider_error_message(exc) or str(exc)
+            if not is_retryable_model_error(exc):
+                raise
+
+    return {
+        "ok": False,
+        "model": "",
+        "models": models,
+        "message": (
+            "Groq /models worked, but /chat/completions failed for every tested model. "
+            "Check the project request logs in GroqCloud for the exact rejection reason."
+        ),
+    }
+
+
+def unique_nonempty(items):
+    seen = set()
+    for item in items:
+        item = item.strip() if isinstance(item, str) else ""
+        if item and item not in seen:
+            seen.add(item)
+            yield item
+
+
+def is_retryable_model_error(exc):
+    status_code = getattr(exc, "code", None)
+    if status_code not in (400, 403, 404):
+        return False
+    message = extract_provider_error_message(exc).lower()
+    return "1010" in message or "model" in message
 
 
 def ask_ai(provider, endpoint, token, model, exam, student_goal):
@@ -3294,7 +3769,7 @@ def ask_ai(provider, endpoint, token, model, exam, student_goal):
 
 
 def format_ai_error(provider, endpoint, exc):
-    message = str(exc)
+    message = extract_provider_error_message(exc) or str(exc)
     status_code = getattr(exc, "code", None)
     if provider == AI_PROVIDER_OLLAMA and ("10061" in message or "Connection refused" in message):
         return (
@@ -3312,13 +3787,46 @@ def format_ai_error(provider, endpoint, exc):
             f"Usage: {OPENAI_USAGE_URL} | Limits: {OPENAI_LIMITS_URL}"
         )
     if status_code == 401:
-        return "OpenAI-compatible provider rejected the token. Check that the API token is correct and active."
+        return "Groq rejected the API key. Check that the key is copied correctly, active, and from GroqCloud."
+    if status_code == 403:
+        return (
+            "Groq API request failed: this key or selected model cannot run chat completions. "
+            "No local answer was used. Create a GroqCloud API key with chat/model access, or try "
+            "`llama-3.3-70b-versatile`."
+        )
     return f"BYOK AI request failed for `{endpoint}`: {message}"
+
+
+def extract_provider_error_message(exc):
+    cached_message = getattr(exc, "_provider_message", None)
+    if cached_message is not None:
+        return cached_message
+    if not isinstance(exc, HTTPError):
+        return ""
+    try:
+        body = exc.read(4096).decode("utf-8", errors="replace")
+    except (OSError, AttributeError, UnicodeDecodeError):
+        return ""
+    if not body:
+        return ""
+    try:
+        payload = loads(body)
+    except JSONDecodeError:
+        message = body.strip()
+        exc._provider_message = message
+        return message
+    error = payload.get("error", payload)
+    if isinstance(error, dict):
+        message = str(error.get("message") or error.get("detail") or "").strip()
+    else:
+        message = str(error).strip()
+    exc._provider_message = message
+    return message
 
 
 def render_ai_assistant(exam):  # pragma: no cover
     st.subheader("AI study assistant")
-    st.caption("Use local Ollama, or bring your own token for an OpenAI-compatible provider.")
+    st.caption("Use Gemini AI, Groq BYOK, Free AI, or local Ollama.")
 
     provider = st.radio(
         "AI provider",
@@ -3326,6 +3834,14 @@ def render_ai_assistant(exam):  # pragma: no cover
         horizontal=True,
         key=f"ai_provider_{exam['id']}",
     )
+
+    if provider == AI_PROVIDER_GEMINI:
+        render_gemini_assistant(exam)
+        return
+
+    if provider == AI_PROVIDER_FREE:
+        render_free_ai_assistant(exam)
+        return
 
     if provider == AI_PROVIDER_OLLAMA:
         endpoint = st.text_input(
@@ -3336,32 +3852,9 @@ def render_ai_assistant(exam):  # pragma: no cover
         model = st.text_input("Ollama model", value="llama3.2", key=f"ollama_model_{exam['id']}")
         token = ""
     else:
-        st.info(
-            "BYOK means the user brings their own API token. Paste the provider's chat endpoint, model, and token here."
-        )
-        key_col, docs_col, usage_col, limits_col = st.columns(4)
-        key_col.link_button("Get OpenAI API key", OPENAI_API_KEYS_URL, use_container_width=True)
-        docs_col.link_button("Chat API docs", OPENAI_CHAT_REFERENCE_URL, use_container_width=True)
-        usage_col.link_button("API usage", OPENAI_USAGE_URL, use_container_width=True)
-        limits_col.link_button("Rate limits", OPENAI_LIMITS_URL, use_container_width=True)
-        endpoint = st.text_input(
-            "Chat completions endpoint",
-            value=DEFAULT_BYOK_URL,
-            help="OpenAI-compatible example: https://api.openai.com/v1/chat/completions",
-            key=f"byok_endpoint_{exam['id']}",
-        )
-        model = st.text_input(
-            "Model",
-            value="gpt-4o-mini",
-            help="Use a model supported by your selected API provider.",
-            key=f"byok_model_{exam['id']}",
-        )
-        token = st.text_input(
-            "API token",
-            type="password",
-            help="Paste your own token. It is used only for this Streamlit session.",
-            key=f"byok_token_{exam['id']}",
-        )
+        # Use GROQ endpoint for BYOK option. Keep Ollama behavior unchanged.
+        render_groq_assistant(exam)
+        return
 
     student_goal = st.text_area(
         "What should AI help with?",
@@ -3562,17 +4055,18 @@ def main():  # pragma: no cover
         else:
             menu = st.expander("Menu")
         with menu:
+            current_language_code = LANGUAGES[st.session_state.language_name]
             st.markdown(
-                """
+                f"""
                 <div class="eh-sidebar-brand">
                     <div class="eh-sidebar-logo">EH</div>
-                    <div class="eh-sidebar-name">Exam Hub</div>
+                    <div class="eh-sidebar-name">{escape(tr("app_name", current_language_code))}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
             language_name = st.selectbox(
-                "Language",
+                tr("language", current_language_code),
                 list(LANGUAGES),
                 index=list(LANGUAGES).index(st.session_state.language_name),
                 key="language_name",
@@ -3587,7 +4081,11 @@ def main():  # pragma: no cover
     with search_col:
         query = st.text_input(tr("search_exams", language_code), placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
     with category_col:
-        category = st.selectbox(tr("category", language_code), categories)
+        category = st.selectbox(
+            tr("category", language_code),
+            categories,
+            format_func=lambda value: category_display_name(value, language_code),
+        )
     st.markdown("</div>", unsafe_allow_html=True)
 
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]

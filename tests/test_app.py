@@ -1,3 +1,6 @@
+from io import BytesIO
+from urllib.error import HTTPError
+
 import app
 
 
@@ -15,6 +18,23 @@ def test_make_book_links_generates_shopping_searches():
 
     assert links["Amazon"] == "https://www.amazon.in/s?k=GMAT+Official+Guide"
     assert links["Flipkart"] == "https://www.flipkart.com/search?q=GMAT+Official+Guide"
+
+
+def test_telugu_ui_overrides_cover_visible_home_labels():
+    assert app.tr("app_name", "te") != app.tr("app_name", "en")
+    assert app.tr("hero_copy", "te") != app.tr("hero_copy", "en")
+    assert app.tr("curated_exams", "te") != app.tr("curated_exams", "en")
+    assert app.tr("current_matches", "te") != app.tr("current_matches", "en")
+    assert app.tr("all_categories", "te") != app.tr("all_categories", "en")
+
+
+def test_category_display_name_translates_all_categories_without_changing_filter_value():
+    assert app.category_display_name("All categories", "te") == app.tr("all_categories", "te")
+    assert app.matches_filters(
+        {"name": "Sample", "description": "Engineering exam", "category": "Engineering"},
+        "",
+        "All categories",
+    )
 
 
 def test_tr_uses_language_value_and_english_fallback():
@@ -115,9 +135,22 @@ def test_build_ai_prompt_includes_exam_context_and_goal():
     assert "Indian competitive exams" in prompt
     assert "Joint Entrance Examination (JEE Main)" in prompt
     assert "Build a weekly revision plan." in prompt
+    assert "Build a weekly revision plan." in prompt
 
 
-def test_ask_ollama_uses_local_chat_payload(monkeypatch):
+def test_query_groq_requires_endpoint():
+    try:
+        app.query_groq("", "", "*[_type == \"exam\"]")
+        assert False, "Expected ValueError when endpoint is empty"
+    except ValueError as exc:
+        assert "GROQ endpoint is required" in str(exc)
+
+
+def test_gemini_ai_is_default_provider():
+    assert app.AI_PROVIDER_OPTIONS[0] == app.AI_PROVIDER_GEMINI
+
+
+def test_ask_gemini_sends_generate_content_payload(monkeypatch):
     captured = {}
 
     def fake_post_json(url, payload, headers=None, timeout=45):
@@ -125,46 +158,210 @@ def test_ask_ollama_uses_local_chat_payload(monkeypatch):
         captured["payload"] = payload
         captured["headers"] = headers
         captured["timeout"] = timeout
-        return {"message": {"content": "local answer"}}
+        return {"candidates": [{"content": {"parts": [{"text": "Gemini answer"}]}}]}
 
     monkeypatch.setattr(app, "post_json", fake_post_json)
 
-    answer = app.ask_ollama("http://localhost:11434/api/chat", "llama3.2", "hello")
+    answer = app.ask_gemini("  gemini-key\n", "gemini-3.5-flash", "hello exam")
 
-    assert answer == "local answer"
-    assert captured["url"] == "http://localhost:11434/api/chat"
-    assert captured["payload"]["model"] == "llama3.2"
-    assert captured["payload"]["stream"] is False
-    assert captured["headers"] is None
+    assert answer == "Gemini answer"
+    assert captured["url"].endswith("/gemini-3.5-flash:generateContent")
+    assert captured["payload"]["contents"][0]["parts"][0]["text"] == "hello exam"
+    assert captured["payload"]["generationConfig"]["maxOutputTokens"] == 700
+    assert captured["headers"] == {"x-goog-api-key": "gemini-key"}
+    assert captured["timeout"] == 60
 
 
-def test_ask_openai_compatible_sends_bearer_token(monkeypatch):
+def test_ask_free_ai_uses_no_key_endpoint(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return b"Free AI answer"
+
+    def fake_urlopen(request, timeout=60):
+        captured["url"] = request.full_url
+        captured["headers"] = dict(request.header_items())
+        captured["timeout"] = timeout
+        return FakeResponse()
+
+    monkeypatch.setattr(app, "urlopen", fake_urlopen)
+
+    answer = app.ask_free_ai("hello exam")
+
+    assert answer == "Free AI answer"
+    assert captured["url"].startswith(app.DEFAULT_FREE_AI_URL)
+    assert "Authorization" not in captured["headers"]
+    assert captured["timeout"] == 60
+
+
+def test_free_ai_rate_limit_can_use_builtin_backup():
+    exam = app.load_exams()[0]
+    backup = app.build_local_study_response(exam, "what is the syllabus")
+
+    assert "Main syllabus areas" in backup
+    assert "30-day structure" not in backup
+
+
+def test_default_groq_model_uses_official_quickstart_model():
+    assert app.DEFAULT_BYOK_MODEL == "llama-3.3-70b-versatile"
+
+
+def test_ask_openai_compatible_sends_groq_chat_payload(monkeypatch):
     captured = {}
 
     def fake_post_json(url, payload, headers=None, timeout=45):
         captured["url"] = url
         captured["payload"] = payload
         captured["headers"] = headers
-        captured["timeout"] = timeout
-        return {"choices": [{"message": {"content": "byok answer"}}]}
+        return {"choices": [{"message": {"content": "AI answer"}}]}
 
     monkeypatch.setattr(app, "post_json", fake_post_json)
 
-    answer = app.ask_openai_compatible("https://example.com/v1/chat/completions", "secret-token", "model-1", "hello")
+    answer = app.ask_openai_compatible(app.DEFAULT_BYOK_URL, "secret", "llama-3.3-70b-versatile", "prompt")
 
-    assert answer == "byok answer"
-    assert captured["url"] == "https://example.com/v1/chat/completions"
-    assert captured["payload"]["model"] == "model-1"
-    assert captured["headers"] == {"Authorization": "Bearer secret-token"}
+    assert answer == "AI answer"
+    assert captured["url"] == app.DEFAULT_BYOK_URL
+    assert captured["payload"]["model"] == "llama-3.3-70b-versatile"
+    assert captured["payload"]["max_completion_tokens"] == 700
+    assert captured["headers"] == {"Authorization": "Bearer secret"}
 
 
-def test_format_ai_error_explains_ollama_connection_refused():
-    message = app.format_ai_error(
-        app.AI_PROVIDER_OLLAMA,
-        "http://localhost:11434/api/chat",
-        OSError("[WinError 10061] No connection could be made"),
+def test_ask_openai_compatible_strips_copied_api_key_whitespace(monkeypatch):
+    captured = {}
+
+    def fake_post_json(url, payload, headers=None, timeout=45):
+        captured["headers"] = headers
+        return {"choices": [{"message": {"content": "AI answer"}}]}
+
+    monkeypatch.setattr(app, "post_json", fake_post_json)
+
+    app.ask_openai_compatible(app.DEFAULT_BYOK_URL, "  secret-key\r\n", "llama-3.3-70b-versatile", "prompt")
+
+    assert captured["headers"] == {"Authorization": "Bearer secret-key"}
+
+
+def test_groq_auto_model_tries_official_model_before_available_model_list(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["model-from-account"])
+
+    def fake_openai_compatible(endpoint, token, model, prompt):
+        calls.append((endpoint, token, model, prompt))
+        return "answer"
+
+    monkeypatch.setattr(app, "ask_openai_compatible", fake_openai_compatible)
+
+    answer = app.ask_groq_with_fallback("token", "auto", "prompt")
+
+    assert answer == "answer"
+    assert calls == [(app.DEFAULT_BYOK_URL, "token", "llama-3.3-70b-versatile", "prompt")]
+
+
+def test_groq_retries_error_1010_with_next_available_model(monkeypatch):
+    calls = []
+
+    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["working-model"])
+
+    def fake_openai_compatible(endpoint, token, model, prompt):
+        calls.append(model)
+        if model in app.GROQ_FALLBACK_MODELS:
+            raise HTTPError(endpoint, 403, "Forbidden", {}, BytesIO(b'{"error":{"message":"error code: 1010"}}'))
+        return "answer"
+
+    monkeypatch.setattr(app, "ask_openai_compatible", fake_openai_compatible)
+
+    answer = app.ask_groq_with_fallback("token", "auto", "prompt")
+
+    assert answer == "answer"
+    assert calls == [*app.GROQ_FALLBACK_MODELS, "working-model"]
+
+
+def test_local_study_response_returns_plan_without_provider():
+    exam = app.load_exams()[0]
+
+    response = app.build_local_study_response(exam, "Make a 30-day preparation plan.")
+
+    assert "30-day structure" in response
+    assert exam["name"] in response
+    assert "Verify dates" in response
+
+
+def test_local_study_response_answers_exam_use_question():
+    exam = next(item for item in app.load_exams() if "GATE" in item["name"])
+
+    response = app.build_local_study_response(exam, "what is the use of this exam")
+
+    assert "Graduate Aptitude Test in Engineering (GATE) is used for" in response
+    assert "M.Tech admissions" in response
+    assert "30-day structure" not in response
+
+
+def test_local_study_response_answers_useful_for_engineering_question():
+    exam = app.load_exams()[0]
+
+    response = app.build_local_study_response(exam, "is this useful exam for engineering")
+
+    assert "Yes. Joint Entrance Examination (JEE Main) is useful for engineering students." in response
+    assert "Admission to NITs, IIITs, GFTIs" in response
+    assert "30-day structure" not in response
+
+
+def test_local_study_response_answers_syllabus_question():
+    exam = app.load_exams()[0]
+
+    response = app.build_local_study_response(exam, "what is the syllabus")
+
+    assert "Main syllabus areas" in response
+    assert "Physics" in response
+    assert "30-day structure" not in response
+
+
+def test_diagnose_groq_access_reports_working_chat_model(monkeypatch):
+    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["working-model"])
+    monkeypatch.setattr(app, "ask_openai_compatible", lambda endpoint, token, model, prompt: "OK")
+
+    diagnosis = app.diagnose_groq_access("token", "auto")
+
+    assert diagnosis["ok"] is True
+    assert diagnosis["model"] == "working-model"
+    assert diagnosis["models"] == ["working-model"]
+    assert "/chat/completions both worked" in diagnosis["message"]
+
+
+def test_diagnose_groq_access_reports_chat_permission_failure(monkeypatch):
+    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["blocked-model"])
+
+    def fail_chat(endpoint, token, model, prompt):
+        raise HTTPError(endpoint, 403, "Forbidden", {}, BytesIO(b'{"error":{"message":"error code: 1010"}}'))
+
+    monkeypatch.setattr(app, "ask_openai_compatible", fail_chat)
+
+    diagnosis = app.diagnose_groq_access("token", "auto")
+
+    assert diagnosis["ok"] is False
+    assert diagnosis["models"] == ["blocked-model"]
+    assert "/models worked" in diagnosis["message"]
+    assert "1010" not in diagnosis["message"]
+
+
+def test_format_ai_error_hides_provider_detail_for_forbidden_response():
+    exc = HTTPError(
+        app.DEFAULT_BYOK_URL,
+        403,
+        "Forbidden",
+        {},
+        BytesIO(b'{"error":{"message":"The selected model is not enabled for this project."}}'),
     )
 
-    assert "Start Ollama" in message
-    assert "ollama run llama3.2" in message
-    assert "host.docker.internal" in message
+    message = app.format_ai_error(app.AI_PROVIDER_BYOK, app.DEFAULT_BYOK_URL, exc)
+
+    assert "Groq API request failed" in message
+    assert "No local answer was used" in message
+    assert "selected model is not enabled" not in message

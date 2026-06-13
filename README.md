@@ -39,13 +39,15 @@ streamlit run app.py
 ## AI Options
 
 Open any exam detail view and choose the **AI Assistant** tab.
+Exam Hub uses a GROQ endpoint for interactive queries from the AI Assistant.
 
-- Local AI: run Ollama on your machine, keep the provider set to `Local AI
-  (Ollama)`, and use a model such as `llama3.2`.
-- BYOK: choose `BYOK tokens (OpenAI-compatible)`, enter your own API token,
-  endpoint, and model. Tokens are entered in the app session and are not stored
-  in the repository. The app includes links to the OpenAI API keys page and chat
-  completions API docs for users who need an API token.
+- Configure a default endpoint by setting the `GROQ_ENDPOINT` environment
+  variable before launching the app, or enter an endpoint per-exam in the
+  AI Assistant tab.
+- If your GROQ endpoint requires authentication, provide a bearer token in the
+  AI Assistant's "Bearer token" field. Tokens are entered into the Streamlit
+  session and are not saved to the repository.
 
-When running inside Docker, use an Ollama endpoint reachable from the container,
-for example `http://host.docker.internal:11434/api/chat` on Docker Desktop.
+When running inside Docker, ensure the GROQ endpoint is reachable from the
+container (for example, `http://host.docker.internal:<port>/...` on Docker
+Desktop).

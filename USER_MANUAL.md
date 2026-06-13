@@ -22,17 +22,22 @@ Using The App
 AI Options
 ----------
 
-The AI Assistant supports two modes:
+The AI Assistant runs GROQ queries against a configured endpoint.
 
-- Local AI Inference: run Ollama locally and use the default Ollama chat
-  endpoint, or enter another reachable Ollama endpoint.
-- BYOK: select the OpenAI-compatible option and enter your own API token,
-  endpoint, and model for that session. Use the built-in API key and chat API
-  documentation links if you need to create a token.
+- Set a default endpoint using the `GROQ_ENDPOINT` environment variable before
+  launching the app, or paste an endpoint into the "GROQ endpoint" field in
+  the AI Assistant tab for a specific exam.
+- If required, provide a bearer token in the "Bearer token" field; the token
+  is used only for the current session and is not persisted in the repository.
+- Enter a GROQ query in the query box and click "Run GROQ query" to execute it
+  and view JSON results in the UI. Example query:
 
-API tokens are typed into the Streamlit session and are not saved in project
-files. Always verify AI-generated advice against the latest official exam
-notification.
+```
+*[_type == "exam" && name == "Joint Entrance Examination (JEE Main)"]
+```
+
+Always verify any data or advice returned by a remote endpoint against the
+official exam notification before acting on it.
 
 Notes
 -----
