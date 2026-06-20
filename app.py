@@ -1,12 +1,13 @@
+# ruff: noqa: E501
 from copy import deepcopy
 from difflib import SequenceMatcher
 from html import escape
 from json import JSONDecodeError, dumps, loads
 from os import getenv
-from uuid import uuid4
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
+from uuid import uuid4
 
 import streamlit as st
 
@@ -345,11 +346,7 @@ OVERVIEW_CHECKLIST = [
 
 BASE_EXAMS = [
     {
-        "name": "Joint Entrance Examination (JEE Main)",
-        "category": "Engineering",
-        "description": "Entrance exam for NITs, IIITs, GFTIs, and JEE Advanced qualification.",
-        "eligibility": "Passed or appearing in 10+2 with Physics, Chemistry, and Mathematics.",
-        "syllabus": ["Physics", "Chemistry", "Mathematics"],
+        "name": "National Eligibility cum Entrance Test (NEET UG)",
         "category": "Medical",
         "description": "Medical entrance exam for MBBS, BDS, and allied undergraduate courses.",
         "eligibility": "10+2 with Physics, Chemistry, Biology/Biotechnology, and English.",
@@ -3502,7 +3499,7 @@ def build_local_study_response(exam, student_goal):
         f"- Days 1-7: Build basics in {weekly_focus[0]} and make short notes.",
         f"- Days 8-14: Practice timed questions from {weekly_focus[min(1, len(weekly_focus) - 1)]}.",
         f"- Days 15-21: Revise {weekly_focus[min(2, len(weekly_focus) - 1)]} and solve previous papers.",
-        f"- Days 22-27: Take full mocks, review mistakes, and update formula/revision sheets.",
+        "- Days 22-27: Take full mocks, review mistakes, and update formula/revision sheets.",
         "- Days 28-30: Light revision, exam-day checklist, and one final mixed practice session.",
         "",
         "Daily routine:",
@@ -3819,7 +3816,6 @@ def diagnose_groq_access(token, model):
     models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
     requested_model = model.strip()
     candidate_models = models if not requested_model or requested_model.lower() == "auto" else [requested_model]
-    last_message = ""
 
     for candidate_model in unique_nonempty(candidate_models + GROQ_FALLBACK_MODELS):
         try:
@@ -3831,7 +3827,6 @@ def diagnose_groq_access(token, model):
                 "message": "Groq /models and /chat/completions both worked.",
             }
         except HTTPError as exc:
-            last_message = extract_provider_error_message(exc) or str(exc)
             if not is_retryable_model_error(exc):
                 raise
 
