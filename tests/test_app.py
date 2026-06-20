@@ -2,6 +2,7 @@ from io import BytesIO
 from urllib.error import HTTPError
 
 import app
+from exam_hub_adk import tools as adk_tools
 
 
 def test_make_pyqs_generates_search_links_and_files():
@@ -150,6 +151,11 @@ def test_gemini_ai_is_default_provider():
     assert app.AI_PROVIDER_OPTIONS[0] == app.AI_PROVIDER_GEMINI
 
 
+def test_adk_agent_is_available_as_ai_provider():
+    assert app.AI_PROVIDER_ADK in app.AI_PROVIDER_OPTIONS
+    assert app.DEFAULT_ADK_MODEL == "gemini-flash-latest"
+
+
 def test_ask_gemini_sends_generate_content_payload(monkeypatch):
     captured = {}
 
@@ -207,6 +213,36 @@ def test_free_ai_rate_limit_can_use_builtin_backup():
 
     assert "Main syllabus areas" in backup
     assert "30-day structure" not in backup
+
+
+def test_adk_tools_find_exam_details_and_build_plan():
+    search = adk_tools.find_exams("jee", limit=2)
+    details = adk_tools.get_exam_details("JEE Main")
+    plan = adk_tools.build_study_plan("JEE Main", "Make a 30-day preparation plan.", 30)
+
+    assert search["status"] == "success"
+    assert search["exams"][0]["name"] == "Joint Entrance Examination (JEE Main)"
+    assert details["status"] == "success"
+    assert "books" in details["exam"]
+    assert plan["status"] == "success"
+    assert "30-day structure" in plan["plan"]
+
+
+def test_adk_tools_save_and_recall_student_memory(tmp_path, monkeypatch):
+    monkeypatch.setattr(adk_tools, "MEMORY_DIR", tmp_path)
+
+    saved = adk_tools.save_student_memory(
+        "Student 1",
+        target_exam="GATE",
+        goal="Revise engineering mathematics",
+        weak_topics="Aptitude",
+    )
+    recalled = adk_tools.recall_student_memory("student-1")
+
+    assert saved["status"] == "success"
+    assert saved["student_id"] == "student-1"
+    assert recalled["memory"]["target_exam"] == "GATE"
+    assert recalled["memory"]["weak_topics"] == "Aptitude"
 
 
 def test_default_groq_model_uses_official_quickstart_model():
