@@ -3,6 +3,7 @@ from difflib import SequenceMatcher
 from html import escape
 from json import JSONDecodeError, dumps, loads
 from os import getenv
+from uuid import uuid4
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
@@ -15,14 +16,16 @@ DEFAULT_GROQ_URL = getenv("GROQ_ENDPOINT", "")
 
 # AI provider options
 AI_PROVIDER_GEMINI = "Gemini AI"
+AI_PROVIDER_ADK = "Google ADK Agent"
 AI_PROVIDER_FREE = "Free AI"
 AI_PROVIDER_OLLAMA = "Ollama"
 AI_PROVIDER_BYOK = "BYOK"
-AI_PROVIDER_OPTIONS = [AI_PROVIDER_GEMINI, AI_PROVIDER_BYOK, AI_PROVIDER_FREE, AI_PROVIDER_OLLAMA]
+AI_PROVIDER_OPTIONS = [AI_PROVIDER_GEMINI, AI_PROVIDER_ADK, AI_PROVIDER_BYOK, AI_PROVIDER_FREE, AI_PROVIDER_OLLAMA]
 
 # Default endpoints for Ollama / BYOK (can be overridden with env vars)
 DEFAULT_GEMINI_URL = getenv("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models")
 DEFAULT_GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
+DEFAULT_ADK_MODEL = getenv("EXAM_HUB_ADK_MODEL", "gemini-flash-latest")
 DEFAULT_FREE_AI_URL = getenv("FREE_AI_ENDPOINT", "https://text.pollinations.ai")
 DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/chat")
 DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions")
@@ -242,6 +245,53 @@ def render_groq_assistant(exam):  # pragma: no cover
             st.write(answer)
         else:
             st.warning("The assistant returned an empty response.")
+
+
+def render_adk_assistant(exam):  # pragma: no cover
+    st.subheader("ADK exam agent")
+    st.caption("Uses Google Agent Development Kit with Exam Hub tools and lightweight student memory.")
+
+    student_id = st.text_input(
+        "Student memory ID",
+        value="default-student",
+        key=f"adk_student_id_{exam['id']}",
+        help="Use the same ID later so the ADK agent can recall your saved exam goal.",
+    )
+    student_goal = st.text_area(
+        "What should the ADK agent do?",
+        value=f"Remember that I am preparing for {exam['name']} and make a 30-day study plan.",
+        key=f"adk_goal_{exam['id']}",
+        height=140,
+    )
+
+    if st.button("Ask ADK agent", key=f"adk_ask_{exam['id']}", type="primary"):
+        if not student_goal.strip():
+            st.warning("Ask a question or request a study plan before submitting.")
+            return
+
+        adk_prompt = (
+            f"Student memory ID: {student_id.strip() or 'default-student'}\n"
+            f"Current exam: {exam['name']}\n"
+            f"Student request: {student_goal.strip()}"
+        )
+        try:
+            with st.spinner("Running ADK agent..."):
+                answer = ask_adk_agent(adk_prompt, student_id)
+        except ImportError:
+            st.error("Google ADK is not installed. Run `pip install -r requirements.txt` and try again.")
+            return
+        except ValueError as exc:
+            st.error(str(exc))
+            return
+        except Exception as exc:  # noqa: BLE001
+            st.error(f"ADK agent failed: {exc}")
+            return
+
+        if answer:
+            st.markdown("**ADK agent response:**")
+            st.write(answer)
+        else:
+            st.warning("The ADK agent returned an empty response.")
 
 APPLICATION_STEPS = [
     "Visit the official exam website and open the latest notification.",
@@ -3626,6 +3676,58 @@ def ask_gemini(token, model, prompt):
     return "\n".join(part.get("text", "") for part in parts if isinstance(part, dict)).strip()
 
 
+def _run_adk_coroutine(coroutine):
+    import asyncio
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coroutine)
+
+    loop = asyncio.new_event_loop()
+    try:
+        return loop.run_until_complete(coroutine)
+    finally:
+        loop.close()
+
+
+async def _ask_adk_agent_async(prompt, student_id):
+    from google.adk.runners import Runner
+    from google.adk.sessions import InMemorySessionService
+    from google.genai import types
+
+    from exam_hub_adk.agent import root_agent
+
+    app_name = "exam_hub"
+    user_id = student_id.strip() or "default-student"
+    session_id = f"streamlit-{uuid4().hex}"
+    session_service = InMemorySessionService()
+    await session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
+
+    runner = Runner(agent=root_agent, app_name=app_name, session_service=session_service)
+    message = types.Content(role="user", parts=[types.Part(text=prompt)])
+    final_parts = []
+
+    async for event in runner.run_async(user_id=user_id, session_id=session_id, new_message=message):
+        is_final = getattr(event, "is_final_response", None)
+        if callable(is_final) and not is_final():
+            continue
+
+        content = getattr(event, "content", None)
+        for part in getattr(content, "parts", []) or []:
+            text = getattr(part, "text", "")
+            if text:
+                final_parts.append(text)
+
+    return "\n".join(final_parts).strip()
+
+
+def ask_adk_agent(prompt, student_id="default-student"):
+    if not getenv("GOOGLE_API_KEY") and getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() != "true":
+        raise ValueError("Set `GOOGLE_API_KEY` before using the ADK agent.")
+    return _run_adk_coroutine(_ask_adk_agent_async(prompt, student_id))
+
+
 def format_gemini_error(exc):
     message = extract_provider_error_message(exc) or str(exc)
     status_code = getattr(exc, "code", None)
@@ -3837,6 +3939,10 @@ def render_ai_assistant(exam):  # pragma: no cover
 
     if provider == AI_PROVIDER_GEMINI:
         render_gemini_assistant(exam)
+        return
+
+    if provider == AI_PROVIDER_ADK:
+        render_adk_assistant(exam)
         return
 
     if provider == AI_PROVIDER_FREE:
