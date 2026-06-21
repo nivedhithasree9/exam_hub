@@ -101,6 +101,7 @@ def normalize_search_text(text):
 def search_tokens(text):
     return normalize_search_text(text).split()
 
+
 def query_groq(endpoint, token, query):
     if not endpoint:
         raise ValueError("GROQ endpoint is required.")
@@ -319,6 +320,7 @@ def render_adk_assistant(exam):  # pragma: no cover
         else:
             st.warning("The ADK agent returned an empty response.")
 
+
 APPLICATION_STEPS = [
     "Visit the official exam website and open the latest notification.",
     "Create an account or sign in with your registered email/mobile number.",
@@ -347,11 +349,26 @@ EXAM_DAY_DONTS = [
 ]
 
 RESERVATION_CATEGORIES = [
-    {"title": "SC / ST", "detail": "Reserved seats, relaxed cutoffs, age limits, or fees may apply as per the exam notice."},
-    {"title": "OBC-NCL", "detail": "Benefits usually apply only for Non-Creamy Layer candidates with a valid certificate."},
-    {"title": "EWS", "detail": "Economically Weaker Section benefits require an income and asset certificate in the latest format."},
-    {"title": "PwD", "detail": "Persons with Benchmark Disabilities may get reservation, extra time, scribes, or other facilities."},
-    {"title": "State / Domicile", "detail": "State exams may include local, rural, women, defence, sports, or institution-specific quotas."},
+    {
+        "title": "SC / ST",
+        "detail": "Reserved seats, relaxed cutoffs, age limits, or fees may apply as per the exam notice.",
+    },
+    {
+        "title": "OBC-NCL",
+        "detail": "Benefits usually apply only for Non-Creamy Layer candidates with a valid certificate.",
+    },
+    {
+        "title": "EWS",
+        "detail": "Economically Weaker Section benefits require an income and asset certificate in the latest format.",
+    },
+    {
+        "title": "PwD",
+        "detail": "Persons with Benchmark Disabilities may get reservation, extra time, scribes, or other facilities.",
+    },
+    {
+        "title": "State / Domicile",
+        "detail": "State exams may include local, rural, women, defence, sports, or institution-specific quotas.",
+    },
 ]
 
 RESERVATION_CHECKLIST = [
@@ -3256,8 +3273,8 @@ def render_detail_list(items, language_code):  # pragma: no cover
         '<div class="eh-detail-list">'
         + "".join(
             '<div class="eh-detail-item">'
-            f'<strong>{escape(translate_text(item["title"], language_code))}</strong>'
-            f'<span>{escape(translate_text(item["detail"], language_code))}</span>'
+            f"<strong>{escape(translate_text(item['title'], language_code))}</strong>"
+            f"<span>{escape(translate_text(item['detail'], language_code))}</span>"
             "</div>"
             for item in items
         )
@@ -3285,10 +3302,7 @@ def render_overview_checklist(exam, language_code):  # pragma: no cover
 
 
 def render_rule_panel(title, items, class_name, language_code):  # pragma: no cover
-    translated_items = "".join(
-        f"<li>{escape(translate_text(item, language_code))}</li>"
-        for item in items
-    )
+    translated_items = "".join(f"<li>{escape(translate_text(item, language_code))}</li>" for item in items)
     return (
         '<div class="eh-rule-panel">'
         f'<div class="eh-rule-title">{escape(translate_text(title, language_code))}</div>'
@@ -3420,6 +3434,7 @@ JEE_EXAM = {
     ],
 }
 
+
 @st.cache_data
 def load_exams():
     exams = []
@@ -3457,14 +3472,18 @@ def matches_filters(exam, query, category):
     )
     searchable_tokens = search_tokens(searchable_text)
     query_tokens = search_tokens(query)
-    query_matches = not query or query in searchable_text or all(
-        any(
-            token.startswith(query_token)
-            or query_token.startswith(token)
-            or SequenceMatcher(None, query_token, token).ratio() >= 0.74
-            for token in searchable_tokens
+    query_matches = (
+        not query
+        or query in searchable_text
+        or all(
+            any(
+                token.startswith(query_token)
+                or query_token.startswith(token)
+                or SequenceMatcher(None, query_token, token).ratio() >= 0.74
+                for token in searchable_tokens
+            )
+            for query_token in query_tokens
         )
-        for query_token in query_tokens
     )
     category_matches = category == "All categories" or exam["category"] == category
     return query_matches and category_matches
@@ -3679,9 +3698,11 @@ def ensure_adk_google_api_key():
     if normalize_api_token(getenv("GOOGLE_API_KEY", "")):
         return True
 
-    packaged_key = normalize_api_token(getenv("EXAM_HUB_GOOGLE_API_KEY", "")) or get_streamlit_secret(
-        "GOOGLE_API_KEY"
-    ) or get_streamlit_secret("EXAM_HUB_GOOGLE_API_KEY")
+    packaged_key = (
+        normalize_api_token(getenv("EXAM_HUB_GOOGLE_API_KEY", ""))
+        or get_streamlit_secret("GOOGLE_API_KEY")
+        or get_streamlit_secret("EXAM_HUB_GOOGLE_API_KEY")
+    )
     if packaged_key:
         environ["GOOGLE_API_KEY"] = packaged_key
         return True
@@ -3707,9 +3728,7 @@ def ask_gemini(token, model, prompt):
     model = model.strip() or DEFAULT_GEMINI_MODEL
     url = f"{DEFAULT_GEMINI_URL.rstrip('/')}/{quote(model, safe='')}:generateContent"
     payload = {
-        "system_instruction": {
-            "parts": [{"text": "You are a concise, careful exam preparation assistant."}]
-        },
+        "system_instruction": {"parts": [{"text": "You are a concise, careful exam preparation assistant."}]},
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 700},
     }

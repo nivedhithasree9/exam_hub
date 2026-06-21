@@ -35,11 +35,7 @@ def find_exams(query: str = "", category: str = "All categories", limit: int = 5
     query = query.strip() if isinstance(query, str) else ""
     category_filter = category.strip() if isinstance(category, str) else "All categories"
     category_filter = category_filter or "All categories"
-    matches = [
-        _exam_summary(exam)
-        for exam in exams
-        if app.matches_filters(exam, query, category_filter)
-    ]
+    matches = [_exam_summary(exam) for exam in exams if app.matches_filters(exam, query, category_filter)]
     try:
         limit = int(limit or 5)
     except (TypeError, ValueError):

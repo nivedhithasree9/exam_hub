@@ -1,4 +1,16 @@
+minimum_pre_commit_version: "3.5.0"
+default_install_hook_types: [pre-commit, pre-push]
+
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.12.0
     hooks:
@@ -25,8 +37,9 @@ repos:
     rev: v3.3.7
     hooks:
       - id: pylint
-        args: ["--rcfile=pyproject.toml"]
+        args: ["--rcfile=pyproject.toml", "app.py", "exam_hub_adk"]
         additional_dependencies: ["streamlit"]
+        pass_filenames: false
 
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
@@ -44,17 +57,33 @@ repos:
     rev: v8.24.0
     hooks:
       - id: gitleaks
+        stages: [pre-commit, pre-push]
 
   - repo: local
     hooks:
       - id: semgrep
         name: semgrep
         entry: semgrep --config p/python --error
-        language: system
+        language: python
+        additional_dependencies: ["semgrep==1.165.0"]
         types: [python]
+        stages: [pre-push]
+      - id: pytest
+        name: pytest
+        entry: python -m pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: compliance-docs
+        name: compliance docs
+        entry: python scripts/check_compliance.py
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
 
   - repo: https://github.com/pypa/pip-audit
     rev: v2.9.0
     hooks:
       - id: pip-audit
         args: ["-r", "requirements.txt"]
+        stages: [pre-push]

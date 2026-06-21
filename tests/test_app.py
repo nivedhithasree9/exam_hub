@@ -141,10 +141,11 @@ def test_build_ai_prompt_includes_exam_context_and_goal():
 
 def test_query_groq_requires_endpoint():
     try:
-        app.query_groq("", "", "*[_type == \"exam\"]")
-        assert False, "Expected ValueError when endpoint is empty"
+        app.query_groq("", "", '*[_type == "exam"]')
     except ValueError as exc:
         assert "GROQ endpoint is required" in str(exc)
+    else:
+        raise AssertionError("Expected ValueError when endpoint is empty")
 
 
 def test_gemini_ai_is_default_provider():

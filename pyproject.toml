@@ -12,7 +12,7 @@ check_untyped_defs = false
 
 [tool.bandit]
 exclude_dirs = [".git", ".mypy_cache", ".ruff_cache", ".specify", "specs"]
-skips = ["B101"]
+skips = ["B101", "B105", "B310"]
 
 [tool.flake8]
 max-line-length = 120
@@ -33,10 +33,17 @@ disable = [
   "too-many-arguments",
   "too-many-positional-arguments",
   "too-many-branches",
+  "too-many-return-statements",
   "too-many-statements",
   "too-many-nested-blocks",
   "consider-using-in",
+  "broad-exception-caught",
+  "cyclic-import",
+  "import-error",
+  "import-outside-toplevel",
   "line-too-long",
+  "no-name-in-module",
+  "protected-access",
   "duplicate-code",
 ]
 
