@@ -156,6 +156,36 @@ def test_adk_agent_is_available_as_ai_provider():
     assert app.DEFAULT_ADK_MODEL == "gemini-flash-latest"
 
 
+def test_load_local_env_sets_missing_values_only(tmp_path, monkeypatch):
+    env_file = tmp_path / ".env"
+    env_file.write_text("EXAM_HUB_TEST_KEY=from-file\nEXAM_HUB_EXISTING=from-file\n", encoding="utf-8")
+    monkeypatch.delenv("EXAM_HUB_TEST_KEY", raising=False)
+    monkeypatch.setenv("EXAM_HUB_EXISTING", "from-env")
+
+    app.load_local_env(env_file)
+
+    assert app.getenv("EXAM_HUB_TEST_KEY") == "from-file"
+    assert app.getenv("EXAM_HUB_EXISTING") == "from-env"
+
+
+def test_ensure_adk_google_api_key_uses_packaged_key(monkeypatch):
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
+    monkeypatch.setenv("EXAM_HUB_GOOGLE_API_KEY", " packaged-key ")
+
+    assert app.ensure_adk_google_api_key() is True
+    assert app.getenv("GOOGLE_API_KEY") == "packaged-key"
+
+
+def test_ensure_adk_google_api_key_reports_missing_configuration(monkeypatch):
+    monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("EXAM_HUB_GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_GENAI_USE_VERTEXAI", raising=False)
+    monkeypatch.setattr(app, "get_streamlit_secret", lambda _name: "")
+
+    assert app.ensure_adk_google_api_key() is False
+
+
 def test_ask_gemini_sends_generate_content_payload(monkeypatch):
     captured = {}
 
