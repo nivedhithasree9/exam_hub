@@ -1863,6 +1863,9 @@ UI_TEXT = {
         "overview": "Overview",
         "syllabus": "Syllabus",
         "preparation": "Preparation",
+        "ai_assistant": "AI Assistant",
+        "rules": "Rules",
+        "reservation": "Reservation",
         "apply": "Apply",
         "eligibility": "Eligibility",
         "exam_pattern": "Exam pattern",
@@ -1873,6 +1876,7 @@ UI_TEXT = {
         "application_mode": "Application mode",
         "fee": "Fee",
         "used_for": "Used for",
+        "before_you_apply": "Before you apply",
         "important_dates": "Important dates",
         "stage": "Stage",
         "notification": "Notification",
@@ -1886,6 +1890,7 @@ UI_TEXT = {
         "buy_flipkart": "Buy on Flipkart",
         "preparation_tips": "Preparation tips",
         "pyq": "Previous year question papers",
+        "question_paper": "Question Paper",
         "official_website": "Open official website",
         "how_apply": "How to apply",
         "check_notice": "Check notice",
@@ -2093,7 +2098,39 @@ UI_TEXT["te"].update(
         "overview": "\u0c05\u0c35\u0c32\u0c4b\u0c15\u0c28\u0c02",
         "syllabus": "\u0c38\u0c3f\u0c32\u0c2c\u0c38\u0c4d",
         "preparation": "\u0c24\u0c2f\u0c3e\u0c30\u0c40",
+        "ai_assistant": "AI \u0c38\u0c39\u0c3e\u0c2f\u0c15\u0c41\u0c21\u0c41",
+        "rules": "\u0c28\u0c3f\u0c2f\u0c2e\u0c3e\u0c32\u0c41",
+        "reservation": "\u0c30\u0c3f\u0c1c\u0c30\u0c4d\u0c35\u0c47\u0c37\u0c28\u0c4d",
         "apply": "\u0c26\u0c30\u0c16\u0c3e\u0c38\u0c4d\u0c24\u0c41",
+        "eligibility": "\u0c05\u0c30\u0c4d\u0c39\u0c24",
+        "exam_pattern": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c28\u0c2e\u0c42\u0c28\u0c3e",
+        "conducted_by": "\u0c28\u0c3f\u0c30\u0c4d\u0c35\u0c39\u0c3f\u0c02\u0c1a\u0c47 \u0c38\u0c02\u0c38\u0c4d\u0c25",
+        "frequency": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c24\u0c30\u0c1a\u0c41\u0c26\u0c28\u0c02",
+        "exam_mode": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c2e\u0c4b\u0c21\u0c4d",
+        "duration": "\u0c35\u0c4d\u0c2f\u0c35\u0c27\u0c3f",
+        "application_mode": "\u0c26\u0c30\u0c16\u0c3e\u0c38\u0c4d\u0c24\u0c41 \u0c35\u0c3f\u0c27\u0c3e\u0c28\u0c02",
+        "fee": "\u0c30\u0c41\u0c38\u0c41\u0c2e\u0c41",
+        "used_for": "\u0c09\u0c2a\u0c2f\u0c4b\u0c17\u0c02",
+        "before_you_apply": "\u0c26\u0c30\u0c16\u0c3e\u0c38\u0c4d\u0c24\u0c41 \u0c2e\u0c41\u0c02\u0c26\u0c41",
+        "important_dates": "\u0c2e\u0c41\u0c16\u0c4d\u0c2f\u0c2e\u0c48\u0c28 \u0c24\u0c47\u0c26\u0c40\u0c32\u0c41",
+        "stage": "\u0c26\u0c36",
+        "notification": "\u0c28\u0c4b\u0c1f\u0c3f\u0c2b\u0c3f\u0c15\u0c47\u0c37\u0c28\u0c4d",
+        "exam_date": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c24\u0c47\u0c26\u0c40",
+        "timeline": "\u0c15\u0c3e\u0c32\u0c15\u0c4d\u0c30\u0c2e\u0c02",
+        "syllabus_focus": "\u0c38\u0c3f\u0c32\u0c2c\u0c38\u0c4d \u0c2a\u0c4d\u0c30\u0c27\u0c3e\u0c28 \u0c05\u0c02\u0c36\u0c3e\u0c32\u0c41",
+        "selection_process": "\u0c0e\u0c02\u0c2a\u0c3f\u0c15 \u0c2a\u0c4d\u0c30\u0c15\u0c4d\u0c30\u0c3f\u0c2f",
+        "recommended_books": "\u0c38\u0c3f\u0c2b\u0c3e\u0c30\u0c38\u0c41 \u0c1a\u0c47\u0c38\u0c3f\u0c28 \u0c2a\u0c41\u0c38\u0c4d\u0c24\u0c15\u0c3e\u0c32\u0c41",
+        "book_note": "\u0c15\u0c4a\u0c28\u0c41\u0c17\u0c4b\u0c32\u0c41 \u0c2e\u0c41\u0c02\u0c26\u0c41 \u0c0e\u0c21\u0c3f\u0c37\u0c28\u0c4d, \u0c35\u0c3f\u0c15\u0c4d\u0c30\u0c47\u0c24 \u0c30\u0c47\u0c1f\u0c3f\u0c02\u0c17\u0c4d, \u0c27\u0c30\u0c28\u0c41 \u0c2a\u0c4b\u0c32\u0c4d\u0c1a\u0c02\u0c21\u0c3f.",
+        "buy_amazon": "Amazon \u0c32\u0c4b \u0c15\u0c4a\u0c28\u0c02\u0c21\u0c3f",
+        "buy_flipkart": "Flipkart \u0c32\u0c4b \u0c15\u0c4a\u0c28\u0c02\u0c21\u0c3f",
+        "preparation_tips": "\u0c24\u0c2f\u0c3e\u0c30\u0c40 \u0c1a\u0c3f\u0c1f\u0c4d\u0c15\u0c3e\u0c32\u0c41",
+        "pyq": "\u0c17\u0c24 \u0c38\u0c02\u0c35\u0c24\u0c4d\u0c38\u0c30 \u0c2a\u0c4d\u0c30\u0c36\u0c4d\u0c28\u0c2a\u0c24\u0c4d\u0c30\u0c3e\u0c32\u0c41",
+        "question_paper": "\u0c2a\u0c4d\u0c30\u0c36\u0c4d\u0c28\u0c2a\u0c24\u0c4d\u0c30\u0c02",
+        "official_website": "\u0c05\u0c27\u0c3f\u0c15\u0c3e\u0c30\u0c3f\u0c15 \u0c35\u0c46\u0c2c\u0c4d\u200c\u0c38\u0c48\u0c1f\u0c4d \u0c24\u0c46\u0c30\u0c35\u0c02\u0c21\u0c3f",
+        "how_apply": "\u0c0e\u0c32\u0c3e \u0c26\u0c30\u0c16\u0c3e\u0c38\u0c4d\u0c24\u0c41 \u0c1a\u0c47\u0c2f\u0c3e\u0c32\u0c3f",
+        "check_notice": "\u0c28\u0c4b\u0c1f\u0c40\u0c38\u0c41 \u0c1a\u0c42\u0c21\u0c02\u0c21\u0c3f",
+        "check_latest": "\u0c24\u0c3e\u0c1c\u0c3e \u0c28\u0c4b\u0c1f\u0c3f\u0c2b\u0c3f\u0c15\u0c47\u0c37\u0c28\u0c4d \u0c1a\u0c42\u0c21\u0c02\u0c21\u0c3f",
+        "to_be_announced": "\u0c2a\u0c4d\u0c30\u0c15\u0c1f\u0c3f\u0c02\u0c1a\u0c3e\u0c32\u0c4d\u0c38\u0c3f \u0c09\u0c02\u0c26\u0c3f",
     }
 )
 
@@ -3391,12 +3428,15 @@ def render_book_card(book, language_code):  # pragma: no cover
     flipkart_col.link_button(tr("buy_flipkart", language_code), links["Flipkart"], use_container_width=True)
 
 
-@st.dialog("Exam details", width="large")
 def render_exam_dialog(exam, language_code):  # pragma: no cover
-    render_exam_details(exam, language_code)
-    if st.button(tr("close_details", language_code), use_container_width=True):
-        st.session_state.selected_exam_id = None
-        st.rerun()
+    @st.dialog(tr("exam_details", language_code), width="large")
+    def _dialog():
+        render_exam_details(exam, language_code)
+        if st.button(tr("close_details", language_code), use_container_width=True):
+            st.session_state.selected_exam_id = None
+            st.rerun()
+
+    _dialog()
 
 
 JEE_EXAM = {
@@ -4081,9 +4121,9 @@ def render_exam_details(exam, language_code):  # pragma: no cover
             tr("overview", language_code),
             tr("syllabus", language_code),
             tr("preparation", language_code),
-            "AI Assistant",
-            translate_text("Rules", language_code),
-            translate_text("Reservation", language_code),
+            tr("ai_assistant", language_code),
+            tr("rules", language_code),
+            tr("reservation", language_code),
             tr("apply", language_code),
         ]
     )
@@ -4132,7 +4172,7 @@ def render_exam_details(exam, language_code):  # pragma: no cover
             f'<div class="eh-info-grid">{"".join(overview_panels)}</div>',
             unsafe_allow_html=True,
         )
-        render_text_section_title("Before you apply", language_code)
+        render_section_title("before_you_apply", language_code)
         render_overview_checklist(exam, language_code)
         render_section_title("important_dates", language_code)
         st.table(
@@ -4188,7 +4228,7 @@ def render_exam_details(exam, language_code):  # pragma: no cover
             st.markdown(f"- {translate_text(tip, language_code)}")
         render_section_title("pyq", language_code)
         for paper in exam["pyq"]:
-            st.link_button(f"{paper['year']} Question Paper", paper["url"])
+            st.link_button(f"{paper['year']} {tr('question_paper', language_code)}", paper["url"])
 
     with ai_tab:
         render_ai_assistant(exam)
