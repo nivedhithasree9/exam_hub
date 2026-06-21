@@ -44,8 +44,12 @@ This project includes an ADK agent in `exam_hub_adk/agent.py`. It defines a
 `root_agent` with Exam Hub tools for finding exams, reading exam details,
 building study plans, and saving/recalling student preparation memory.
 
+For the Streamlit app, configure one Google AI Studio key for the deployment.
+Exam Hub reads `GOOGLE_API_KEY` from `.env`, the environment, or Streamlit
+secrets, so app users do not need to enter a key in their terminal.
+
 1. Create a Gemini key in Google AI Studio.
-2. Set `GOOGLE_API_KEY` in your shell or `.env` file.
+2. Add `GOOGLE_API_KEY=...` to your local `.env` file or Streamlit deployment secrets.
 3. Install dependencies with `pip install -r requirements.txt`.
 4. Run the Streamlit app and choose **Google ADK Agent** in the AI Assistant tab.
 
