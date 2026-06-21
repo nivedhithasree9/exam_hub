@@ -22,11 +22,24 @@ def test_make_book_links_generates_shopping_searches():
 
 
 def test_telugu_ui_overrides_cover_visible_home_labels():
-    assert app.tr("app_name", "te") != app.tr("app_name", "en")
-    assert app.tr("hero_copy", "te") != app.tr("hero_copy", "en")
-    assert app.tr("curated_exams", "te") != app.tr("curated_exams", "en")
-    assert app.tr("current_matches", "te") != app.tr("current_matches", "en")
-    assert app.tr("all_categories", "te") != app.tr("all_categories", "en")
+    visible_keys = [
+        "app_name",
+        "hero_copy",
+        "curated_exams",
+        "current_matches",
+        "all_categories",
+        "exam_details",
+        "ai_assistant",
+        "eligibility",
+        "exam_pattern",
+        "conducted_by",
+        "frequency",
+        "before_you_apply",
+        "question_paper",
+    ]
+
+    for key in visible_keys:
+        assert app.tr(key, "te") != app.tr(key, "en")
 
 
 def test_category_display_name_translates_all_categories_without_changing_filter_value():
