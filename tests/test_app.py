@@ -157,6 +157,10 @@ def test_adk_agent_is_available_as_ai_provider():
     assert app.DEFAULT_ADK_MODEL == "gemini-flash-latest"
 
 
+def test_ollama_default_endpoint_matches_env_example():
+    assert app.DEFAULT_OLLAMA_URL == "http://localhost:11434/api/chat"
+
+
 def test_load_local_env_sets_missing_values_only(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text("EXAM_HUB_TEST_KEY=from-file\nEXAM_HUB_EXISTING=from-file\n", encoding="utf-8")
@@ -446,3 +450,14 @@ def test_format_ai_error_hides_provider_detail_for_forbidden_response():
     assert "Groq API request failed" in message
     assert "No local answer was used" in message
     assert "selected model is not enabled" not in message
+
+
+def test_format_ai_error_explains_ollama_address_failure():
+    message = app.format_ai_error(
+        app.AI_PROVIDER_OLLAMA,
+        app.DEFAULT_OLLAMA_URL,
+        OSError("[Errno 99] Cannot assign requested address"),
+    )
+
+    assert "Could not connect to Ollama" in message
+    assert "ollama run llama3.2" in message
