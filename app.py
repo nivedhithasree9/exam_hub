@@ -48,7 +48,7 @@ DEFAULT_GEMINI_URL = getenv("GEMINI_ENDPOINT", "https://generativelanguage.googl
 DEFAULT_GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
 DEFAULT_ADK_MODEL = getenv("EXAM_HUB_ADK_MODEL", "gemini-flash-latest")
 DEFAULT_FREE_AI_URL = getenv("FREE_AI_ENDPOINT", "https://text.pollinations.ai")
-DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT", "http://localhost:11434/api/chat")
+DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT") or getenv("OLLAMA_CHAT_ENDPOINT", "http://localhost:11434/api/chat")
 DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions")
 DEFAULT_BYOK_MODELS_URL = getenv("BYOK_MODELS_ENDPOINT", "https://api.groq.com/openai/v1/models")
 DEFAULT_BYOK_MODEL = getenv("BYOK_MODEL", "llama-3.3-70b-versatile")
@@ -3935,7 +3935,9 @@ def ask_ai(provider, endpoint, token, model, exam, student_goal):
 def format_ai_error(provider, endpoint, exc):
     message = extract_provider_error_message(exc) or str(exc)
     status_code = getattr(exc, "code", None)
-    if provider == AI_PROVIDER_OLLAMA and ("10061" in message or "Connection refused" in message):
+    if provider == AI_PROVIDER_OLLAMA and (
+        "10061" in message or "Connection refused" in message or "Cannot assign requested address" in message
+    ):
         return (
             "Could not connect to Ollama. Start Ollama on this machine, run "
             "`ollama pull llama3.2` or `ollama run llama3.2`, then try again. "
@@ -4038,8 +4040,12 @@ def render_ai_assistant(exam):  # pragma: no cover
             with st.spinner("Asking AI..."):
                 answer = ask_ai(provider, endpoint, token, model, exam, student_goal)
         except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
-            st.error(format_ai_error(provider, endpoint, exc))
-            return
+            if provider == AI_PROVIDER_OLLAMA:
+                st.info(format_ai_error(provider, endpoint, exc))
+                answer = ask_no_key_assistant(exam, student_goal)
+            else:
+                st.error(format_ai_error(provider, endpoint, exc))
+                return
         if answer:
             st.markdown(answer)
         else:
