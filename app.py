@@ -306,10 +306,8 @@ def render_adk_assistant(exam):  # pragma: no cover
             with st.spinner("Running ADK agent..."):
                 answer = ask_adk_agent(adk_prompt, student_id)
         except ImportError:
-            st.info("ADK is unavailable, so Exam Hub answered with the no-key assistant.")
             answer = ask_no_key_assistant(exam, student_goal)
         except ValueError:
-            st.info("ADK is not configured, so Exam Hub answered with the no-key assistant.")
             answer = ask_no_key_assistant(exam, student_goal)
         except Exception as exc:  # noqa: BLE001
             st.error(f"ADK agent failed: {exc}")
