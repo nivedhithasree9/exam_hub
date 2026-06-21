@@ -199,6 +199,13 @@ def render_free_ai_assistant(exam):  # pragma: no cover
             st.warning("Free AI returned an empty response. Try again.")
 
 
+def ask_no_key_assistant(exam, student_goal):
+    try:
+        return ask_free_ai(build_ai_prompt(exam, student_goal))
+    except (HTTPError, URLError, TimeoutError, OSError):
+        return build_local_study_response(exam, student_goal)
+
+
 def render_groq_assistant(exam):  # pragma: no cover
     st.subheader("AI study assistant")
     st.caption("Enter your Groq API key and ask an exam question or request a study timetable.")
@@ -299,11 +306,11 @@ def render_adk_assistant(exam):  # pragma: no cover
             with st.spinner("Running ADK agent..."):
                 answer = ask_adk_agent(adk_prompt, student_id)
         except ImportError:
-            st.error("Google ADK is not installed. Run `pip install -r requirements.txt` and try again.")
-            return
-        except ValueError as exc:
-            st.error(str(exc))
-            return
+            st.info("ADK is unavailable, so Exam Hub answered with the no-key assistant.")
+            answer = ask_no_key_assistant(exam, student_goal)
+        except ValueError:
+            st.info("ADK is not configured, so Exam Hub answered with the no-key assistant.")
+            answer = ask_no_key_assistant(exam, student_goal)
         except Exception as exc:  # noqa: BLE001
             st.error(f"ADK agent failed: {exc}")
             return
