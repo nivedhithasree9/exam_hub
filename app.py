@@ -3,13 +3,33 @@ from copy import deepcopy
 from difflib import SequenceMatcher
 from html import escape
 from json import JSONDecodeError, dumps, loads
-from os import getenv
+from os import environ, getenv
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
 import streamlit as st
+
+
+def load_local_env(path=".env"):
+    env_path = Path(path)
+    if not env_path.exists():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        name = name.strip()
+        value = value.strip().strip("\"'")
+        if name and name not in environ:
+            environ[name] = value
+
+
+load_local_env()
 
 # Default GROQ endpoint (can be overridden with the GROQ_ENDPOINT env var)
 # This should be a GROQ query language endpoint (e.g., Sanity), not a Groq LLM endpoint.
@@ -3640,6 +3660,29 @@ def normalize_api_token(token):
     return token.strip() if isinstance(token, str) else ""
 
 
+def get_streamlit_secret(name):
+    try:
+        value = st.secrets.get(name, "")
+    except (AttributeError, FileNotFoundError, KeyError, RuntimeError, TypeError):
+        return ""
+    return normalize_api_token(value)
+
+
+def ensure_adk_google_api_key():
+    if getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() == "true":
+        return True
+    if normalize_api_token(getenv("GOOGLE_API_KEY", "")):
+        return True
+
+    packaged_key = normalize_api_token(getenv("EXAM_HUB_GOOGLE_API_KEY", "")) or get_streamlit_secret(
+        "GOOGLE_API_KEY"
+    ) or get_streamlit_secret("EXAM_HUB_GOOGLE_API_KEY")
+    if packaged_key:
+        environ["GOOGLE_API_KEY"] = packaged_key
+        return True
+    return False
+
+
 def ask_free_ai(prompt):
     query = urlencode(
         {
@@ -3720,8 +3763,8 @@ async def _ask_adk_agent_async(prompt, student_id):
 
 
 def ask_adk_agent(prompt, student_id="default-student"):
-    if not getenv("GOOGLE_API_KEY") and getenv("GOOGLE_GENAI_USE_VERTEXAI", "").lower() != "true":
-        raise ValueError("Set `GOOGLE_API_KEY` before using the ADK agent.")
+    if not ensure_adk_google_api_key():
+        raise ValueError("The ADK agent is not configured with a Google API key yet.")
     return _run_adk_coroutine(_ask_adk_agent_async(prompt, student_id))
 
 
