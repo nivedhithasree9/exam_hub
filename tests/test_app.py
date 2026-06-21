@@ -245,6 +245,20 @@ def test_free_ai_rate_limit_can_use_builtin_backup():
     assert "30-day structure" not in backup
 
 
+def test_no_key_assistant_falls_back_to_builtin_response(monkeypatch):
+    exam = app.load_exams()[0]
+
+    def fail_free_ai(_prompt):
+        raise TimeoutError
+
+    monkeypatch.setattr(app, "ask_free_ai", fail_free_ai)
+
+    answer = app.ask_no_key_assistant(exam, "what is the syllabus")
+
+    assert "Main syllabus areas" in answer
+    assert "Physics" in answer
+
+
 def test_adk_tools_find_exam_details_and_build_plan():
     search = adk_tools.find_exams("jee", limit=2)
     details = adk_tools.get_exam_details("JEE Main")
