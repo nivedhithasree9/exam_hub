@@ -213,7 +213,7 @@ def test_ask_gemini_sends_generate_content_payload(monkeypatch):
     assert answer == "Gemini answer"
     assert captured["url"].endswith("/gemini-3.5-flash:generateContent")
     assert captured["payload"]["contents"][0]["parts"][0]["text"] == "hello exam"
-    assert captured["payload"]["generationConfig"]["maxOutputTokens"] == 700
+    assert captured["payload"]["generationConfig"]["maxOutputTokens"] == 2000
     assert captured["headers"] == {"x-goog-api-key": "gemini-key"}
     assert captured["timeout"] == 60
 

@@ -131,7 +131,8 @@ def render_gemini_assistant(exam):  # pragma: no cover
 
         if answer:
             st.markdown("**AI assistant response:**")
-            st.write(answer)
+            st.markdown(answer)
+            st.markdown('<div class="eh-ai-response-spacer"></div>', unsafe_allow_html=True)
         else:
             st.warning("Gemini returned an empty response. Try again.")
 
@@ -163,7 +164,8 @@ def render_free_ai_assistant(exam):  # pragma: no cover
 
         if answer:
             st.markdown("**AI assistant response:**")
-            st.write(answer)
+            st.markdown(answer)
+            st.markdown('<div class="eh-ai-response-spacer"></div>', unsafe_allow_html=True)
         else:
             st.warning("Free AI returned an empty response. Try again.")
 
@@ -215,7 +217,8 @@ def render_adk_assistant(exam):  # pragma: no cover
 
         if answer:
             st.markdown("**ADK agent response:**")
-            st.write(answer)
+            st.markdown(answer)
+            st.markdown('<div class="eh-ai-response-spacer"></div>', unsafe_allow_html=True)
         else:
             st.warning("The ADK agent returned an empty response.")
 
@@ -2103,6 +2106,10 @@ def inject_theme():  # pragma: no cover
             max-width: 1180px;
         }
 
+        .eh-ai-response-spacer {
+            min-height: 56px;
+        }
+
         section[data-testid="stSidebar"] {
             background: var(--secondary-background-color);
             border-right: 1px solid var(--line);
@@ -3669,7 +3676,7 @@ def ask_gemini(token, model, prompt):
     payload = {
         "system_instruction": {"parts": [{"text": "You are a concise, careful exam preparation assistant."}]},
         "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"maxOutputTokens": 700},
+        "generationConfig": {"maxOutputTokens": 2000},
     }
     result = post_json(url, payload, {"x-goog-api-key": token}, timeout=60)
     candidates = result.get("candidates", [])
