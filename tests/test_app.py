@@ -1,6 +1,3 @@
-from io import BytesIO
-from urllib.error import HTTPError
-
 import app
 from exam_hub_adk import tools as adk_tools
 
@@ -152,15 +149,6 @@ def test_build_ai_prompt_includes_exam_context_and_goal():
     assert "Build a weekly revision plan." in prompt
 
 
-def test_query_groq_requires_endpoint():
-    try:
-        app.query_groq("", "", '*[_type == "exam"]')
-    except ValueError as exc:
-        assert "GROQ endpoint is required" in str(exc)
-    else:
-        raise AssertionError("Expected ValueError when endpoint is empty")
-
-
 def test_gemini_ai_is_default_provider():
     assert app.AI_PROVIDER_OPTIONS[0] == app.AI_PROVIDER_GEMINI
 
@@ -168,6 +156,10 @@ def test_gemini_ai_is_default_provider():
 def test_adk_agent_is_available_as_ai_provider():
     assert app.AI_PROVIDER_ADK in app.AI_PROVIDER_OPTIONS
     assert app.DEFAULT_ADK_MODEL == "gemini-flash-latest"
+
+
+def test_byok_is_not_available_as_ai_provider():
+    assert "BYOK" not in app.AI_PROVIDER_OPTIONS
 
 
 def test_ollama_default_endpoint_matches_env_example():
@@ -307,80 +299,6 @@ def test_adk_tools_save_and_recall_student_memory(tmp_path, monkeypatch):
     assert recalled["memory"]["weak_topics"] == "Aptitude"
 
 
-def test_default_groq_model_uses_official_quickstart_model():
-    assert app.DEFAULT_BYOK_MODEL == "llama-3.3-70b-versatile"
-
-
-def test_ask_openai_compatible_sends_groq_chat_payload(monkeypatch):
-    captured = {}
-
-    def fake_post_json(url, payload, headers=None, timeout=45):
-        captured["url"] = url
-        captured["payload"] = payload
-        captured["headers"] = headers
-        return {"choices": [{"message": {"content": "AI answer"}}]}
-
-    monkeypatch.setattr(app, "post_json", fake_post_json)
-
-    answer = app.ask_openai_compatible(app.DEFAULT_BYOK_URL, "secret", "llama-3.3-70b-versatile", "prompt")
-
-    assert answer == "AI answer"
-    assert captured["url"] == app.DEFAULT_BYOK_URL
-    assert captured["payload"]["model"] == "llama-3.3-70b-versatile"
-    assert captured["payload"]["max_completion_tokens"] == 700
-    assert captured["headers"] == {"Authorization": "Bearer secret"}
-
-
-def test_ask_openai_compatible_strips_copied_api_key_whitespace(monkeypatch):
-    captured = {}
-
-    def fake_post_json(url, payload, headers=None, timeout=45):
-        captured["headers"] = headers
-        return {"choices": [{"message": {"content": "AI answer"}}]}
-
-    monkeypatch.setattr(app, "post_json", fake_post_json)
-
-    app.ask_openai_compatible(app.DEFAULT_BYOK_URL, "  secret-key\r\n", "llama-3.3-70b-versatile", "prompt")
-
-    assert captured["headers"] == {"Authorization": "Bearer secret-key"}
-
-
-def test_groq_auto_model_tries_official_model_before_available_model_list(monkeypatch):
-    calls = []
-
-    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["model-from-account"])
-
-    def fake_openai_compatible(endpoint, token, model, prompt):
-        calls.append((endpoint, token, model, prompt))
-        return "answer"
-
-    monkeypatch.setattr(app, "ask_openai_compatible", fake_openai_compatible)
-
-    answer = app.ask_groq_with_fallback("token", "auto", "prompt")
-
-    assert answer == "answer"
-    assert calls == [(app.DEFAULT_BYOK_URL, "token", "llama-3.3-70b-versatile", "prompt")]
-
-
-def test_groq_retries_error_1010_with_next_available_model(monkeypatch):
-    calls = []
-
-    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["working-model"])
-
-    def fake_openai_compatible(endpoint, token, model, prompt):
-        calls.append(model)
-        if model in app.GROQ_FALLBACK_MODELS:
-            raise HTTPError(endpoint, 403, "Forbidden", {}, BytesIO(b'{"error":{"message":"error code: 1010"}}'))
-        return "answer"
-
-    monkeypatch.setattr(app, "ask_openai_compatible", fake_openai_compatible)
-
-    answer = app.ask_groq_with_fallback("token", "auto", "prompt")
-
-    assert answer == "answer"
-    assert calls == [*app.GROQ_FALLBACK_MODELS, "working-model"]
-
-
 def test_local_study_response_returns_plan_without_provider():
     exam = app.load_exams()[0]
 
@@ -419,50 +337,6 @@ def test_local_study_response_answers_syllabus_question():
     assert "Main syllabus areas" in response
     assert "Physics" in response
     assert "30-day structure" not in response
-
-
-def test_diagnose_groq_access_reports_working_chat_model(monkeypatch):
-    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["working-model"])
-    monkeypatch.setattr(app, "ask_openai_compatible", lambda endpoint, token, model, prompt: "OK")
-
-    diagnosis = app.diagnose_groq_access("token", "auto")
-
-    assert diagnosis["ok"] is True
-    assert diagnosis["model"] == "working-model"
-    assert diagnosis["models"] == ["working-model"]
-    assert "/chat/completions both worked" in diagnosis["message"]
-
-
-def test_diagnose_groq_access_reports_chat_permission_failure(monkeypatch):
-    monkeypatch.setattr(app, "get_openai_compatible_models", lambda endpoint, token: ["blocked-model"])
-
-    def fail_chat(endpoint, token, model, prompt):
-        raise HTTPError(endpoint, 403, "Forbidden", {}, BytesIO(b'{"error":{"message":"error code: 1010"}}'))
-
-    monkeypatch.setattr(app, "ask_openai_compatible", fail_chat)
-
-    diagnosis = app.diagnose_groq_access("token", "auto")
-
-    assert diagnosis["ok"] is False
-    assert diagnosis["models"] == ["blocked-model"]
-    assert "/models worked" in diagnosis["message"]
-    assert "1010" not in diagnosis["message"]
-
-
-def test_format_ai_error_hides_provider_detail_for_forbidden_response():
-    exc = HTTPError(
-        app.DEFAULT_BYOK_URL,
-        403,
-        "Forbidden",
-        {},
-        BytesIO(b'{"error":{"message":"The selected model is not enabled for this project."}}'),
-    )
-
-    message = app.format_ai_error(app.AI_PROVIDER_BYOK, app.DEFAULT_BYOK_URL, exc)
-
-    assert "Groq API request failed" in message
-    assert "No local answer was used" in message
-    assert "selected model is not enabled" not in message
 
 
 def test_format_ai_error_explains_ollama_address_failure():

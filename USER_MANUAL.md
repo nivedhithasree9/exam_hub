@@ -22,19 +22,14 @@ Using The App
 AI Options
 ----------
 
-The AI Assistant runs GROQ queries against a configured endpoint.
+The AI Assistant can generate study plans and preparation guidance with the
+supported providers shown in the app.
 
-- Set a default endpoint using the `GROQ_ENDPOINT` environment variable before
-  launching the app, or paste an endpoint into the "GROQ endpoint" field in
-  the AI Assistant tab for a specific exam.
-- If required, provide a bearer token in the "Bearer token" field; the token
-  is used only for the current session and is not persisted in the repository.
-- Enter a GROQ query in the query box and click "Run GROQ query" to execute it
-  and view JSON results in the UI. Example query:
-
-```
-*[_type == "exam" && name == "Joint Entrance Examination (JEE Main)"]
-```
+- Use Gemini AI with a Google AI Studio API key.
+- Use the Google ADK Agent with the app's configured Google API key.
+- Use Free AI without an API key; the app falls back to built-in guidance if
+  the cloud endpoint is unavailable.
+- Use Ollama when a local Ollama server is running.
 
 Always verify any data or advice returned by a remote endpoint against the
 official exam notification before acting on it.

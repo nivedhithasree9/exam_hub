@@ -31,38 +31,21 @@ def load_local_env(path=".env"):
 
 load_local_env()
 
-# Default GROQ endpoint (can be overridden with the GROQ_ENDPOINT env var)
-# This should be a GROQ query language endpoint (e.g., Sanity), not a Groq LLM endpoint.
-DEFAULT_GROQ_URL = getenv("GROQ_ENDPOINT", "")
-
 # AI provider options
 AI_PROVIDER_GEMINI = "Gemini AI"
 AI_PROVIDER_ADK = "Google ADK Agent"
 AI_PROVIDER_FREE = "Free AI"
 AI_PROVIDER_OLLAMA = "Ollama"
-AI_PROVIDER_BYOK = "BYOK"
-AI_PROVIDER_OPTIONS = [AI_PROVIDER_GEMINI, AI_PROVIDER_ADK, AI_PROVIDER_BYOK, AI_PROVIDER_FREE, AI_PROVIDER_OLLAMA]
+AI_PROVIDER_OPTIONS = [AI_PROVIDER_GEMINI, AI_PROVIDER_ADK, AI_PROVIDER_FREE, AI_PROVIDER_OLLAMA]
 
-# Default endpoints for Ollama / BYOK (can be overridden with env vars)
+# Default endpoints for AI providers (can be overridden with env vars)
 DEFAULT_GEMINI_URL = getenv("GEMINI_ENDPOINT", "https://generativelanguage.googleapis.com/v1beta/models")
 DEFAULT_GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
 DEFAULT_ADK_MODEL = getenv("EXAM_HUB_ADK_MODEL", "gemini-flash-latest")
 DEFAULT_FREE_AI_URL = getenv("FREE_AI_ENDPOINT", "https://text.pollinations.ai")
 DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT") or getenv("OLLAMA_CHAT_ENDPOINT", "http://localhost:11434/api/chat")
-DEFAULT_BYOK_URL = getenv("BYOK_CHAT_ENDPOINT", "https://api.groq.com/openai/v1/chat/completions")
-DEFAULT_BYOK_MODELS_URL = getenv("BYOK_MODELS_ENDPOINT", "https://api.groq.com/openai/v1/models")
-DEFAULT_BYOK_MODEL = getenv("BYOK_MODEL", "llama-3.3-70b-versatile")
-GROQ_FALLBACK_MODELS = [
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
-    "openai/gpt-oss-20b",
-]
 
 # Helpful links (used in the UI)
-OPENAI_API_KEYS_URL = "https://platform.openai.com/account/api-keys"
-OPENAI_CHAT_REFERENCE_URL = "https://platform.openai.com/docs/guides/chat"
-OPENAI_USAGE_URL = "https://platform.openai.com/account/usage"
-OPENAI_LIMITS_URL = "https://platform.openai.com/docs/guides/rate-limits"
 GEMINI_API_KEYS_URL = "https://aistudio.google.com/apikey"
 
 
@@ -100,21 +83,6 @@ def normalize_search_text(text):
 
 def search_tokens(text):
     return normalize_search_text(text).split()
-
-
-def query_groq(endpoint, token, query):
-    if not endpoint:
-        raise ValueError("GROQ endpoint is required.")
-    separator = "&" if "?" in endpoint else "?"
-    url = f"{endpoint}{separator}query={quote_plus(query)}"
-    headers = {"Authorization": f"Bearer {token}"} if token else {}
-    request = Request(url, headers=headers, method="GET")
-    with urlopen(request, timeout=45) as response:
-        return loads(response.read().decode("utf-8"))
-
-
-def format_groq_error(endpoint, exc):
-    return f"GROQ request failed for `{endpoint}`: {exc}"
 
 
 def render_gemini_assistant(exam):  # pragma: no cover
@@ -205,75 +173,6 @@ def ask_no_key_assistant(exam, student_goal):
         return ask_free_ai(build_ai_prompt(exam, student_goal))
     except (HTTPError, URLError, TimeoutError, OSError):
         return build_local_study_response(exam, student_goal)
-
-
-def render_groq_assistant(exam):  # pragma: no cover
-    st.subheader("AI study assistant")
-    st.caption("Enter your Groq API key and ask an exam question or request a study timetable.")
-
-    token = st.text_input(
-        "Enter Groq API Key",
-        type="password",
-        help="Enter the Groq API key used to authenticate the exam AI assistant.",
-        key=f"groq_token_{exam['id']}",
-    )
-
-    model = st.text_input(
-        "Groq model",
-        value=DEFAULT_BYOK_MODEL,
-        help="Groq's official quickstart model is llama-3.3-70b-versatile. Use auto only if you want to try models visible to your key.",
-        key=f"groq_model_{exam['id']}",
-    )
-
-    clean_token = normalize_api_token(token)
-
-    if st.button("Check Groq access", key=f"groq_check_{exam['id']}"):
-        if not clean_token:
-            st.warning("Enter your Groq API key before checking access.")
-        else:
-            try:
-                diagnosis = diagnose_groq_access(clean_token, model)
-            except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
-                st.error(format_ai_error(AI_PROVIDER_BYOK, DEFAULT_BYOK_MODELS_URL, exc))
-            else:
-                if diagnosis["ok"]:
-                    st.success(f"Groq chat works with `{diagnosis['model']}`.")
-                else:
-                    st.info(diagnosis["message"])
-                if diagnosis["models"]:
-                    st.caption("Models visible to this key: " + ", ".join(diagnosis["models"][:8]))
-
-    st.markdown("[Get your free Groq API key here](https://www.groq.com/)")
-
-    student_goal = st.text_area(
-        "What should AI help with?",
-        value=f"Make a 30-day preparation plan for {exam['name']}",
-        key=f"groq_goal_{exam['id']}",
-        help="Ask a question about this exam or request a study timetable.",
-        height=140,
-    )
-
-    if st.button("Ask exam assistant", key=f"groq_ask_{exam['id']}", type="primary"):
-        if not clean_token:
-            st.warning("Enter your Groq API key to ask the assistant.")
-            return
-        if not student_goal.strip():
-            st.warning("Ask a question or request a study plan before submitting.")
-            return
-
-        try:
-            prompt = build_ai_prompt(exam, student_goal)
-            with st.spinner("Contacting the exam assistant..."):
-                answer = ask_groq_with_fallback(clean_token, model, prompt)
-        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
-            st.error(format_ai_error(AI_PROVIDER_BYOK, DEFAULT_BYOK_URL, exc))
-            return
-
-        if answer:
-            st.markdown("**Exam assistant response:**")
-            st.write(answer)
-        else:
-            st.warning("The assistant returned an empty response.")
 
 
 def render_adk_assistant(exam):  # pragma: no cover
@@ -3855,126 +3754,15 @@ def ask_ollama(endpoint, model, prompt):
     return result.get("message", {}).get("content") or result.get("response", "")
 
 
-def ask_openai_compatible(endpoint, token, model, prompt):
-    token = normalize_api_token(token)
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a concise, careful exam preparation assistant.",
-            },
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": 0.3,
-        "max_completion_tokens": 700,
-    }
-    result = post_json(endpoint, payload, {"Authorization": f"Bearer {token}"})
-    choices = result.get("choices", [])
-    if not choices:
-        return ""
-    return choices[0].get("message", {}).get("content", "")
-
-
-def get_openai_compatible_models(endpoint, token):
-    token = normalize_api_token(token)
-    request = Request(endpoint, headers={"Authorization": f"Bearer {token}"}, method="GET")
-    with urlopen(request, timeout=45) as response:
-        result = loads(response.read().decode("utf-8"))
-    return [
-        item["id"]
-        for item in result.get("data", [])
-        if isinstance(item, dict) and isinstance(item.get("id"), str) and item["id"].strip()
-    ]
-
-
-def ask_groq_with_fallback(token, model, prompt):
-    token = normalize_api_token(token)
-    requested_model = model.strip()
-    if not requested_model or requested_model.lower() == "auto":
-        available_models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
-        candidate_models = GROQ_FALLBACK_MODELS + available_models
-    else:
-        candidate_models = [requested_model]
-
-    last_error = None
-    tried_models = []
-    for candidate_model in unique_nonempty(candidate_models):
-        tried_models.append(candidate_model)
-        try:
-            return ask_openai_compatible(DEFAULT_BYOK_URL, token, candidate_model, prompt)
-        except HTTPError as exc:
-            last_error = exc
-            if not is_retryable_model_error(exc):
-                raise
-
-            available_models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
-            for available_model in available_models:
-                if available_model not in tried_models:
-                    candidate_models.append(available_model)
-
-    if last_error:
-        raise last_error
-    return ""
-
-
-def diagnose_groq_access(token, model):
-    token = normalize_api_token(token)
-    models = get_openai_compatible_models(DEFAULT_BYOK_MODELS_URL, token)
-    requested_model = model.strip()
-    candidate_models = models if not requested_model or requested_model.lower() == "auto" else [requested_model]
-
-    for candidate_model in unique_nonempty(candidate_models + GROQ_FALLBACK_MODELS):
-        try:
-            ask_openai_compatible(DEFAULT_BYOK_URL, token, candidate_model, "Reply with OK.")
-            return {
-                "ok": True,
-                "model": candidate_model,
-                "models": models,
-                "message": "Groq /models and /chat/completions both worked.",
-            }
-        except HTTPError as exc:
-            if not is_retryable_model_error(exc):
-                raise
-
-    return {
-        "ok": False,
-        "model": "",
-        "models": models,
-        "message": (
-            "Groq /models worked, but /chat/completions failed for every tested model. "
-            "Check the project request logs in GroqCloud for the exact rejection reason."
-        ),
-    }
-
-
-def unique_nonempty(items):
-    seen = set()
-    for item in items:
-        item = item.strip() if isinstance(item, str) else ""
-        if item and item not in seen:
-            seen.add(item)
-            yield item
-
-
-def is_retryable_model_error(exc):
-    status_code = getattr(exc, "code", None)
-    if status_code not in (400, 403, 404):
-        return False
-    message = extract_provider_error_message(exc).lower()
-    return "1010" in message or "model" in message
-
-
 def ask_ai(provider, endpoint, token, model, exam, student_goal):
     prompt = build_ai_prompt(exam, student_goal)
     if provider == AI_PROVIDER_OLLAMA:
         return ask_ollama(endpoint, model, prompt)
-    return ask_openai_compatible(endpoint, token, model, prompt)
+    return ask_free_ai(prompt)
 
 
 def format_ai_error(provider, endpoint, exc):
     message = extract_provider_error_message(exc) or str(exc)
-    status_code = getattr(exc, "code", None)
     if provider == AI_PROVIDER_OLLAMA and (
         "10061" in message or "Connection refused" in message or "Cannot assign requested address" in message
     ):
@@ -3986,21 +3774,7 @@ def format_ai_error(provider, endpoint, exc):
         )
     if provider == AI_PROVIDER_OLLAMA:
         return f"Ollama request failed for `{endpoint}`: {message}"
-    if status_code == 429:
-        return (
-            "OpenAI returned 429 Too Many Requests. Check that the API key has available billing/quota, "
-            "wait a little before retrying, or choose a different model/provider endpoint. "
-            f"Usage: {OPENAI_USAGE_URL} | Limits: {OPENAI_LIMITS_URL}"
-        )
-    if status_code == 401:
-        return "Groq rejected the API key. Check that the key is copied correctly, active, and from GroqCloud."
-    if status_code == 403:
-        return (
-            "Groq API request failed: this key or selected model cannot run chat completions. "
-            "No local answer was used. Create a GroqCloud API key with chat/model access, or try "
-            "`llama-3.3-70b-versatile`."
-        )
-    return f"BYOK AI request failed for `{endpoint}`: {message}"
+    return f"AI request failed for `{endpoint}`: {message}"
 
 
 def extract_provider_error_message(exc):
@@ -4032,7 +3806,7 @@ def extract_provider_error_message(exc):
 
 def render_ai_assistant(exam):  # pragma: no cover
     st.subheader("AI study assistant")
-    st.caption("Use Gemini AI, Groq BYOK, Free AI, or local Ollama.")
+    st.caption("Use Gemini AI, Google ADK Agent, Free AI, or local Ollama.")
 
     provider = st.radio(
         "AI provider",
@@ -4061,10 +3835,6 @@ def render_ai_assistant(exam):  # pragma: no cover
         )
         model = st.text_input("Ollama model", value="llama3.2", key=f"ollama_model_{exam['id']}")
         token = ""
-    else:
-        # Use GROQ endpoint for BYOK option. Keep Ollama behavior unchanged.
-        render_groq_assistant(exam)
-        return
 
     student_goal = st.text_area(
         "What should AI help with?",
@@ -4073,9 +3843,6 @@ def render_ai_assistant(exam):  # pragma: no cover
     )
 
     if st.button("Generate AI guidance", key=f"ai_generate_{exam['id']}", type="primary"):
-        if provider == AI_PROVIDER_BYOK and not token:
-            st.warning("Enter your own API token to use the BYOK provider.")
-            return
         try:
             with st.spinner("Asking AI..."):
                 answer = ask_ai(provider, endpoint, token, model, exam, student_goal)

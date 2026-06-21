@@ -12,7 +12,7 @@ The project is built for students who want to compare exam options quickly befor
 - Read syllabus focus areas, selection process, preparation tips, recommended books, application steps, rules, and reservation guidance.
 - Open official websites and previous-year question-paper searches.
 - Switch UI labels and exam content into supported languages, including Telugu.
-- Generate study guidance with Gemini, Google ADK, Groq BYOK, Free AI, or local Ollama.
+- Generate study guidance with Gemini, Google ADK, Free AI, or local Ollama.
 - Use the Google ADK agent with exam tools and lightweight student memory.
 
 ## Tech Stack
@@ -77,7 +77,6 @@ Edit `.env` and replace placeholder values as needed:
 GOOGLE_API_KEY=your_google_ai_studio_key
 EXAM_HUB_ADK_MODEL=gemini-flash-latest
 OLLAMA_CHAT_ENDPOINT=http://localhost:11434/api/chat
-BYOK_CHAT_ENDPOINT=https://api.openai.com/v1/chat/completions
 ```
 
 Run the app:
@@ -96,9 +95,6 @@ Open the URL shown by Streamlit, usually `http://localhost:8501`.
 | `EXAM_HUB_ADK_MODEL` | Optional | Selects the ADK model. Defaults to `gemini-flash-latest`. |
 | `OLLAMA_CHAT_ENDPOINT` | Optional | Ollama chat endpoint. Defaults to `http://localhost:11434/api/chat`. |
 | `OLLAMA_ENDPOINT` | Optional | Alternate Ollama endpoint name also supported by the app. |
-| `BYOK_CHAT_ENDPOINT` | Optional | OpenAI-compatible BYOK chat endpoint. |
-| `BYOK_MODELS_ENDPOINT` | Optional | OpenAI-compatible model listing endpoint. |
-| `BYOK_MODEL` | Optional | Default BYOK model. |
 | `FREE_AI_ENDPOINT` | Optional | Free AI fallback endpoint. |
 
 Do not commit `.env`. It is ignored by Git. Commit only `.env.example` with placeholders.
@@ -111,7 +107,6 @@ Open any exam detail view and choose the **AI Assistant** tab.
 - **Google ADK Agent**: Uses `exam_hub_adk/agent.py` with tools for exam lookup, study planning, and student memory.
 - **Free AI**: No API key required; falls back to built-in local guidance if the cloud endpoint is unavailable.
 - **Ollama**: Requires Ollama running locally.
-- **BYOK**: Uses your own API key with an OpenAI-compatible chat endpoint.
 
 ## Google ADK Agent
 
