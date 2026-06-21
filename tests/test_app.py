@@ -22,8 +22,8 @@ def test_telugu_ui_overrides_cover_visible_home_labels():
     visible_keys = [
         "app_name",
         "hero_copy",
-        "curated_exams",
-        "current_matches",
+        "matching_exams",
+        "view_details",
         "all_categories",
         "exam_details",
         "ai_assistant",
@@ -50,7 +50,7 @@ def test_category_display_name_translates_all_categories_without_changing_filter
 
 def test_tr_uses_language_value_and_english_fallback():
     assert app.tr("search_exams", "hi") == "परीक्षा खोजें"
-    assert app.tr("curated_exams", "hi") == "Curated exams"
+    assert app.tr("all_categories", "hi") == "All categories"
 
 
 def test_translate_text_returns_english_without_translation():

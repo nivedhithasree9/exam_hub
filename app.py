@@ -1746,13 +1746,6 @@ UI_TEXT = {
             "Discover, compare, and prepare for competitive exams with structured facts, "
             "trusted official links, and preparation paths in one focused workspace."
         ),
-        "curated_exams": "Curated exams",
-        "exam_categories": "Exam categories",
-        "current_matches": "Current matches",
-        "computer_based": "Computer-based exams",
-        "management_exams": "Management exams",
-        "official_links": "Official links included",
-        "paper_search": "Previous year paper search",
         "matching_exams": "Matching exams",
         "view_details": "View exam details",
         "results": "result",
@@ -1983,13 +1976,6 @@ UI_TEXT["te"].update(
         "hero_kicker": "\u0c2a\u0c4d\u0c32\u0c3e\u0c28\u0c4d \u0c1a\u0c47\u0c2f\u0c02\u0c21\u0c3f. \u0c2a\u0c4b\u0c32\u0c4d\u0c1a\u0c02\u0c21\u0c3f. \u0c38\u0c3f\u0c26\u0c4d\u0c27\u0c2e\u0c35\u0c4d\u0c35\u0c02\u0c21\u0c3f.",
         "hero_label": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c38\u0c2e\u0c3e\u0c1a\u0c3e\u0c30 \u0c35\u0c30\u0c4d\u0c15\u0c4d\u200c\u0c38\u0c4d\u0c2a\u0c47\u0c38\u0c4d",
         "hero_copy": "\u0c28\u0c3f\u0c30\u0c4d\u0c2e\u0c3e\u0c23\u0c3e\u0c24\u0c4d\u0c2e\u0c15 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41, \u0c28\u0c2e\u0c4d\u0c2e\u0c26\u0c17\u0c3f\u0c28 \u0c05\u0c27\u0c3f\u0c15\u0c3e\u0c30\u0c3f\u0c15 \u0c32\u0c3f\u0c02\u0c15\u0c4d\u0c32\u0c41, \u0c24\u0c2f\u0c3e\u0c30\u0c40 \u0c2e\u0c3e\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c24\u0c4b \u0c2a\u0c4b\u0c1f\u0c40 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c28\u0c41 \u0c24\u0c46\u0c32\u0c41\u0c38\u0c41\u0c15\u0c4b\u0c02\u0c21\u0c3f, \u0c2a\u0c4b\u0c32\u0c4d\u0c1a\u0c02\u0c21\u0c3f, \u0c38\u0c3f\u0c26\u0c4d\u0c27\u0c2e\u0c35\u0c4d\u0c35\u0c02\u0c21\u0c3f.",
-        "curated_exams": "\u0c0e\u0c02\u0c2a\u0c3f\u0c15 \u0c1a\u0c47\u0c38\u0c3f\u0c28 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
-        "exam_categories": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c30\u0c4d\u0c17\u0c3e\u0c32\u0c41",
-        "current_matches": "\u0c2a\u0c4d\u0c30\u0c38\u0c4d\u0c24\u0c41\u0c24 \u0c38\u0c30\u0c3f\u0c2a\u0c4b\u0c32\u0c3f\u0c15\u0c32\u0c41",
-        "computer_based": "\u0c15\u0c02\u0c2a\u0c4d\u0c2f\u0c42\u0c1f\u0c30\u0c4d \u0c06\u0c27\u0c3e\u0c30\u0c3f\u0c24 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
-        "management_exams": "\u0c2e\u0c47\u0c28\u0c47\u0c1c\u0c4d\u200c\u0c2e\u0c46\u0c02\u0c1f\u0c4d \u0c2a\u0c30\u0c40\u0c15\u0c37\u0c32\u0c41",
-        "official_links": "\u0c05\u0c27\u0c3f\u0c15\u0c3e\u0c30\u0c3f\u0c15 \u0c32\u0c3f\u0c02\u0c15\u0c4d\u0c32\u0c41 \u0c1a\u0c47\u0c30\u0c4d\u0c1a\u0c2c\u0c21\u0c4d\u0c21\u0c3e\u0c2f\u0c3f",
-        "paper_search": "\u0c17\u0c24 \u0c38\u0c02\u0c35\u0c24\u0c4d\u0c38\u0c30 \u0c2a\u0c47\u0c2a\u0c30\u0c4d \u0c36\u0c4b\u0c27\u0c28",
         "matching_exams": "\u0c38\u0c30\u0c3f\u0c2a\u0c4b\u0c2f\u0c47 \u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37\u0c32\u0c41",
         "view_details": "\u0c2a\u0c30\u0c40\u0c15\u0c4d\u0c37 \u0c35\u0c3f\u0c35\u0c30\u0c3e\u0c32\u0c41 \u0c1a\u0c42\u0c21\u0c02\u0c21\u0c3f",
         "results": "\u0c2b\u0c32\u0c3f\u0c24\u0c02",
@@ -2414,45 +2400,6 @@ def inject_theme():  # pragma: no cover
             font-size: 1.02rem;
             max-width: 740px;
             margin: 0;
-        }
-
-        .eh-stat-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 18px;
-        }
-
-        .eh-stat {
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            background: var(--soft-panel);
-            padding: 16px;
-            box-shadow: 0 14px 34px var(--shadow);
-            animation: eh-fade-up 520ms ease-out both;
-            transition:
-                transform 180ms ease,
-                box-shadow 180ms ease,
-                border-color 180ms ease;
-        }
-
-        .eh-stat:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 18px 40px var(--shadow);
-            border-color: color-mix(in srgb, var(--brand) 28%, var(--line));
-        }
-
-        .eh-stat-value {
-            color: var(--ink);
-            font-size: 1.55rem;
-            font-weight: 800;
-            line-height: 1;
-        }
-
-        .eh-stat-label {
-            color: var(--muted);
-            font-size: 0.78rem;
-            margin-top: 7px;
         }
 
         .eh-card {
@@ -3064,10 +3011,6 @@ def inject_theme():  # pragma: no cover
         }
 
         @media (max-width: 900px) {
-            .eh-stat-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
             .eh-passport,
             .eh-fact-grid,
             .eh-info-grid,
@@ -3116,39 +3059,6 @@ def render_hero(language_code):  # pragma: no cover
             <p>
                 {escape(tr("hero_copy", language_code))}
             </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_stat_grid(exams, filtered_exams, categories, language_code):  # pragma: no cover
-    management_count = sum(1 for exam in exams if exam["category"] == "Management")
-    online_count = sum(1 for exam in exams if "computer" in exam.get("examMode", "").lower())
-    st.markdown(
-        f"""
-        <div class="eh-stat-grid">
-            <div class="eh-stat">
-                <div class="eh-stat-value">{len(exams)}</div>
-                <div class="eh-stat-label">{escape(tr("curated_exams", language_code))}</div>
-            </div>
-            <div class="eh-stat">
-                <div class="eh-stat-value">{len(categories) - 1}</div>
-                <div class="eh-stat-label">{escape(tr("exam_categories", language_code))}</div>
-            </div>
-            <div class="eh-stat">
-                <div class="eh-stat-value">{len(filtered_exams)}</div>
-                <div class="eh-stat-label">{escape(tr("current_matches", language_code))}</div>
-            </div>
-            <div class="eh-stat">
-                <div class="eh-stat-value">{online_count}</div>
-                <div class="eh-stat-label">{escape(tr("computer_based", language_code))}</div>
-            </div>
-        </div>
-        <div class="eh-pill-row">
-            <span class="eh-pill">{escape(tr("management_exams", language_code))}: {management_count}</span>
-            <span class="eh-pill">{escape(tr("official_links", language_code))}</span>
-            <span class="eh-pill">{escape(tr("paper_search", language_code))}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -4079,7 +3989,6 @@ def main():  # pragma: no cover
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]
 
     render_hero(language_code)
-    render_stat_grid(exams, filtered_exams, categories, language_code)
 
     render_section_title("matching_exams", language_code)
     visible_exams = filtered_exams[:9]
