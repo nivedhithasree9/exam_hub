@@ -55,3 +55,4 @@ addopts = "--cov=. --cov-report=term --cov-fail-under=70"
 testpaths = ["."]
 python_files = ["test_*.py", "*_test.py"]
 pythonpath = ["."]
+norecursedirs = ["builds", ".git", ".mypy_cache", ".pytest-tmp", ".pytest_cache", ".ruff_cache", ".specify"]

@@ -3,4 +3,7 @@
 .agents/
 __pycache__/
 *.pyc
+.coverage
+.pytest-tmp/
+builds/
 exam_hub_adk/.adk_memory/

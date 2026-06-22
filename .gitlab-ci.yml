@@ -55,5 +55,5 @@ secret_scan:
   stage: security
   script:
     - curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
-    - chmod +x trufflehog
-    - ./trufflehog filesystem .
+    - chmod +x ./bin/trufflehog
+    - ./bin/trufflehog filesystem .
