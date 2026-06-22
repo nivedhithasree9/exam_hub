@@ -54,5 +54,5 @@ semgrep:
 secret_scan:
   stage: security
   script:
-    - pip install trufflehog
+    - python3 -m pip install --break-system-packages trufflehog
     - trufflehog filesystem .
