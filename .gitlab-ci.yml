@@ -54,5 +54,5 @@ semgrep:
 secret_scan:
   stage: security
   script:
-    - python3 -m pip install --break-system-packages trufflehog
+    - curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh
     - trufflehog filesystem .
