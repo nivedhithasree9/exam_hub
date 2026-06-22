@@ -34,7 +34,7 @@ type_check:
 test:
   stage: test
   script:
-    - pytest
+    - pytest --import-mode=importlib
 
 coverage:
   stage: coverage
