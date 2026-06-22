@@ -3671,7 +3671,7 @@ def ask_ollama(endpoint, model, prompt):
     return result.get("message", {}).get("content") or result.get("response", "")
 
 
-def ask_ai(provider, endpoint, token, model, exam, student_goal):
+def ask_ai(provider, endpoint, _token, model, exam, student_goal):
     prompt = build_ai_prompt(exam, student_goal)
     if provider == AI_PROVIDER_OLLAMA:
         return ask_ollama(endpoint, model, prompt)
@@ -3732,6 +3732,11 @@ def render_ai_assistant(exam):  # pragma: no cover
         key=f"ai_provider_{exam['id']}",
     )
 
+    # Initialize variables so pylint knows they always exist
+    endpoint = ""
+    token = ""
+    model = ""
+
     if provider == AI_PROVIDER_GEMINI:
         render_gemini_assistant(exam)
         return
@@ -3750,7 +3755,11 @@ def render_ai_assistant(exam):  # pragma: no cover
             value=DEFAULT_OLLAMA_URL,
             key=f"ollama_endpoint_{exam['id']}",
         )
-        model = st.text_input("Ollama model", value="llama3.2", key=f"ollama_model_{exam['id']}")
+        model = st.text_input(
+            "Ollama model",
+            value="llama3.2",
+            key=f"ollama_model_{exam['id']}",
+        )
         token = ""
 
     student_goal = st.text_area(
@@ -3770,6 +3779,7 @@ def render_ai_assistant(exam):  # pragma: no cover
             else:
                 st.error(format_ai_error(provider, endpoint, exc))
                 return
+
         if answer:
             st.markdown(answer)
         else:
