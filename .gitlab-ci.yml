@@ -55,7 +55,7 @@ coverage:
 dependency_audit:
   stage: security
   script:
-    - uv run pip-audit
+    - uv run pip-audit --cache-dir .pip-audit-cache --progress-spinner off
 
 semgrep:
   stage: security
@@ -66,4 +66,4 @@ semgrep:
 secret_scan:
   stage: security
   script:
-    - gitleaks detect --source . --no-banner --redact --exit-code 1
+    - C:\GitLab-Runner\bin\gitleaks.exe detect --source . --no-banner --redact --exit-code 1

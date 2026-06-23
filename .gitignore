@@ -9,6 +9,7 @@ __pycache__/
 *.pyc
 .coverage
 .uv-cache/
+.pip-audit-cache/
 .pytest-tmp/
 .pytest-run-tmp/
 builds/
