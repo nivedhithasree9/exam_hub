@@ -2,6 +2,7 @@
 .env
 .venv/
 .uv-ci-venv/
+.uv-ci-local-check/
 .uv-verify-venv/
 .agents/
 __pycache__/

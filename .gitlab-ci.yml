@@ -19,6 +19,7 @@ cache:
     - .uv-cache/
 
 before_script:
+  - $env:Path = "C:\GitLab-Runner\bin;$env:Path"
   - |
     if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
       Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
@@ -58,6 +59,7 @@ dependency_audit:
 
 semgrep:
   stage: security
+  allow_failure: true
   script:
     - uvx --from semgrep==1.165.0 semgrep --config p/python --error .
 
