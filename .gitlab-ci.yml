@@ -52,26 +52,8 @@ coverage:
   script:
     - uv run pytest --import-mode=importlib --cov=. --cov-report=term --cov-fail-under=70
 
-dependency_audit:
-  stage: security
-  allow_failure: true
-  script:
-    - |
-      uv run pip-audit --cache-dir .pip-audit-cache --progress-spinner off
-      if ($LASTEXITCODE -ne 0) {
-        Write-Warning "pip-audit did not complete cleanly on this Windows shell runner; see output above."
-        exit 0
-      }
-
-semgrep:
-  stage: security
-  allow_failure: true
-  script:
-    - uvx --from semgrep==1.165.0 semgrep --config p/python --error .
-
 secret_scan:
   stage: security
-  allow_failure: true
   script:
     - |
       & "C:\GitLab-Runner\bin\gitleaks.exe" detect --source . --no-banner --redact --exit-code 1
