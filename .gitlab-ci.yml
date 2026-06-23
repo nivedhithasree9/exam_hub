@@ -19,6 +19,11 @@ cache:
     - .uv-cache/
 
 before_script:
+  - |
+    if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+      Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+      $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+    }
   - uv sync --frozen --group dev --no-install-project
 
 quality:
