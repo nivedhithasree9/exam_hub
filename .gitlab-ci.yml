@@ -66,4 +66,4 @@ semgrep:
 secret_scan:
   stage: security
   script:
-    - uv run pre-commit run gitleaks --all-files
+    - gitleaks detect --source . --no-banner --redact --exit-code 1
