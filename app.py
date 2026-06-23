@@ -5,6 +5,7 @@ from html import escape
 from json import JSONDecodeError, dumps, loads
 from os import environ, getenv
 from pathlib import Path
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, quote_plus, urlencode
 from urllib.request import Request, urlopen
@@ -211,7 +212,7 @@ def render_adk_assistant(exam):  # pragma: no cover
             answer = ask_no_key_assistant(exam, student_goal)
         except ValueError:
             answer = ask_no_key_assistant(exam, student_goal)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             st.error(f"ADK agent failed: {exc}")
             return
 
@@ -3293,14 +3294,14 @@ JEE_EXAM = {
 
 @st.cache_data
 def load_exams():
-    exams = []
-    source = BASE_EXAMS + ADDITIONAL_EXAMS if (BASE_EXAMS or ADDITIONAL_EXAMS) else []
+    exams: list[dict[str, Any]] = []
+    source: list[dict[str, Any]] = BASE_EXAMS + ADDITIONAL_EXAMS if (BASE_EXAMS or ADDITIONAL_EXAMS) else []
     # ensure JEE is first
     deduped = [e for e in source if e.get("name") != JEE_EXAM["name"]]
-    source_exams = [JEE_EXAM] + deduped
+    source_exams = [JEE_EXAM, *deduped]
     for index, exam in enumerate(source_exams, start=1):
-        item = deepcopy(exam)
-        short_name = item["name"].split("(")[0].strip()
+        item: dict[str, Any] = deepcopy(exam)
+        short_name = str(item["name"]).split("(")[0].strip()
         item["id"] = index
         item["logoText"] = make_exam_logo_text(item)
         item["pyq"] = make_pyqs(short_name)
@@ -3952,16 +3953,13 @@ def main():  # pragma: no cover
     st.session_state.setdefault("language_name", "English")
 
     exams = load_exams()
-    categories = ["All categories"] + sorted({exam["category"] for exam in exams})
+    categories = ["All categories", *sorted({exam["category"] for exam in exams})]
 
     st.markdown('<div class="eh-top-controls">', unsafe_allow_html=True)
     search_col, category_col, menu_col = st.columns([1.25, 0.85, 0.18])
 
     with menu_col:
-        if hasattr(st, "popover"):
-            menu = st.popover("☰", use_container_width=True)
-        else:
-            menu = st.expander("Menu")
+        menu = st.popover("☰", use_container_width=True) if hasattr(st, "popover") else st.expander("Menu")
         with menu:
             current_language_code = LANGUAGES[st.session_state.language_name]
             st.markdown(

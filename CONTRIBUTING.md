@@ -7,8 +7,7 @@ Development Workflow
 --------------------
 
 1. Create a branch for your change.
-2. Install dependencies with `pip install -r requirements.txt` and
-   `pip install -r requirements-dev.txt`.
+2. Install dependencies with `uv sync --group dev`.
 3. Install hooks with `pre-commit install`.
 4. Keep changes focused and update documentation when behavior changes.
 5. Run the local quality checks before opening a merge request..
@@ -21,12 +20,10 @@ Use these commands before submitting changes:
 ```bash
 ruff check .
 ruff format --check .
-mypy .
-bandit -c pyproject.toml -r .
-flake8 .
-pylint app.py
-vulture --min-confidence 100 .
-pip-audit -r requirements.txt
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
+uv run pip-audit
 pytest --cov=. --cov-report=term --cov-fail-under=70
 ```
 

@@ -1,55 +1,61 @@
-image: python:3.12
+image: ghcr.io/astral-sh/uv:python3.12-bookworm
 
 stages:
-  - lint
+  - quality
   - format
   - type_check
   - security
   - test
   - coverage
 
-before_script:
-  - python3 -m pip install --break-system-packages -r requirements.txt
-  - python3 -m pip install --break-system-packages -r requirements-dev.txt
+variables:
+  UV_CACHE_DIR: .uv-cache
+  UV_LINK_MODE: copy
 
-lint:
-  stage: lint
+cache:
+  key:
+    files:
+      - uv.lock
+  paths:
+    - .uv-cache/
+
+before_script:
+  - uv sync --frozen --group dev --no-install-project
+
+quality:
+  stage: quality
   script:
-    - ruff check .
-    - flake8 .
-    - pylint app.py
-    - vulture --min-confidence 100 .
-    - pyupgrade --py312-plus app.py
+    - uv run ruff check .
 
 format:
   stage: format
   script:
-    - ruff format --check .
+    - uv run ruff format --check .
 
 type_check:
   stage: type_check
   script:
-    - mypy .
+    - uv run ty check app.py exam_hub_adk tests scripts
 
 test:
   stage: test
   script:
-    - pytest --import-mode=importlib
+    - uv run pytest --import-mode=importlib
 
 coverage:
   stage: coverage
   script:
-    - pytest --import-mode=importlib --cov=. --cov-report=term --cov-fail-under=70
+    - uv run pytest --import-mode=importlib --cov=. --cov-report=term --cov-fail-under=70
 
 dependency_audit:
   stage: security
   script:
-    - pip-audit -r requirements.txt
+    - uv run pip-audit
 
 semgrep:
   stage: security
   script:
-    - semgrep --config p/python --error .
+    - uvx --from semgrep==1.165.0 semgrep --config p/python --error .
 
 secret_scan:
   stage: security

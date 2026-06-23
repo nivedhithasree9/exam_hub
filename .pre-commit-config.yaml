@@ -11,48 +11,6 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
 
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.0
-    hooks:
-      - id: ruff
-      - id: ruff-format
-
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.16.1
-    hooks:
-      - id: mypy
-
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.3
-    hooks:
-      - id: bandit
-        args: ["-c", "pyproject.toml"]
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 7.3.0
-    hooks:
-      - id: flake8
-
-  - repo: https://github.com/pylint-dev/pylint
-    rev: v3.3.7
-    hooks:
-      - id: pylint
-        args: ["--rcfile=pyproject.toml", "app.py", "exam_hub_adk"]
-        additional_dependencies: ["streamlit"]
-        pass_filenames: false
-
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.14
-    hooks:
-      - id: vulture
-        args: ["--min-confidence", "100", "."]
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
-    hooks:
-      - id: pyupgrade
-        args: ["--py312-plus"]
-
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.24.0
     hooks:
@@ -61,29 +19,44 @@ repos:
 
   - repo: local
     hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+      - id: ty
+        name: ty
+        entry: uv run --frozen ty check app.py exam_hub_adk tests scripts
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
       - id: semgrep
         name: semgrep
-        entry: semgrep --config p/python --error
-        language: python
-        additional_dependencies: ["semgrep==1.165.0"]
+        entry: uvx --from semgrep==1.165.0 semgrep --config p/python --error
+        language: system
         types: [python]
         stages: [pre-push]
       - id: pytest
         name: pytest
-        entry: python scripts/run_pytest.py
+        entry: uv run --frozen python scripts/run_pytest.py
         language: system
         pass_filenames: false
         stages: [pre-push]
       - id: compliance-docs
         name: compliance docs
-        entry: python scripts/check_compliance.py
+        entry: uv run --frozen python scripts/check_compliance.py
         language: system
         pass_filenames: false
         stages: [pre-push]
 
-  - repo: https://github.com/pypa/pip-audit
-    rev: v2.9.0
-    hooks:
       - id: pip-audit
-        args: ["-r", "requirements.txt"]
+        name: pip-audit
+        entry: uv run --frozen pip-audit
+        language: system
+        pass_filenames: false
         stages: [pre-push]

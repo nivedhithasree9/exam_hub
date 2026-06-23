@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 def main() -> int:
-    temp_root = Path(".pytest-tmp")
+    temp_root = Path(".pytest-run-tmp")
     temp_root.mkdir(exist_ok=True)
     base_temp = Path(tempfile.mkdtemp(prefix="run-", dir=temp_root))
     try:

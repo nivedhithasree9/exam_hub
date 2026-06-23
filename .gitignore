@@ -1,9 +1,13 @@
 **/node_modules/
 .env
+.venv/
+.uv-verify-venv/
 .agents/
 __pycache__/
 *.pyc
 .coverage
+.uv-cache/
 .pytest-tmp/
+.pytest-run-tmp/
 builds/
 exam_hub_adk/.adk_memory/

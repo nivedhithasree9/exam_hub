@@ -21,7 +21,7 @@ The project is built for students who want to compare exam options quickly befor
 - Streamlit
 - Google Agent Development Kit
 - Pytest and pytest-cov
-- Ruff, Flake8, Pylint, Mypy, Vulture, Pyupgrade
+- Ruff and ty for quality, formatting, and type checking
 - Bandit, Semgrep, Gitleaks, pip-audit
 - Pre-commit and pre-push hooks
 - GitLab CI
@@ -38,14 +38,15 @@ The project is built for students who want to compare exam options quickly befor
 |-- .specify/                 # Spec-Kit configuration and templates
 |-- .pre-commit-config.yaml   # Local quality hooks
 |-- .gitlab-ci.yml            # CI pipeline
+|-- pyproject.toml            # Project dependencies and tool configuration
+|-- uv.lock                   # Locked dependency versions
 |-- .env.example              # Safe environment variable template
-`-- requirements*.txt         # Runtime and development dependencies
 ```
 
 ## Requirements
 
 - Python 3.12 or newer
-- `pip`
+- `uv`
 - A modern browser
 - Optional: Google AI Studio key for Gemini and ADK
 - Optional: Ollama for local AI inference
@@ -55,14 +56,14 @@ The project is built for students who want to compare exam options quickly befor
 Create and activate a virtual environment:
 
 ```powershell
-python -m venv .venv
+uv venv
 .venv\Scripts\activate
 ```
 
-Install runtime dependencies:
+Install dependencies:
 
 ```powershell
-pip install -r requirements.txt
+uv sync --group dev
 ```
 
 Create a private `.env` file from the example:
@@ -155,10 +156,10 @@ OLLAMA_CHAT_ENDPOINT=http://host.docker.internal:11434/api/chat
 
 ## Development Setup
 
-Install development tools:
+Install or update all development tools:
 
 ```powershell
-pip install -r requirements-dev.txt
+uv sync --group dev
 ```
 
 Install local Git hooks:
@@ -184,13 +185,13 @@ pre-commit run --hook-stage pre-push --all-files
 Run the test suite:
 
 ```powershell
-python -m pytest
+uv run pytest
 ```
 
 Run only app tests:
 
 ```powershell
-python -m pytest tests\test_app.py
+uv run pytest tests\test_app.py
 ```
 
 Coverage is enforced in `pyproject.toml`:
@@ -203,11 +204,8 @@ Coverage is enforced in `pyproject.toml`:
 
 The project uses:
 
-- `ruff` and `ruff-format` for linting and formatting.
-- `flake8` and `pylint` for additional lint checks.
-- `mypy` for type checking.
-- `vulture` for dead-code detection.
-- `pyupgrade` for modern Python syntax.
+- `ruff` for linting, import sorting, formatting checks, modernization rules, and code quality.
+- `ty` for type checking.
 - `bandit` and `semgrep` for static security checks.
 - `gitleaks` for secret scanning.
 - `pip-audit` for dependency vulnerability checks.
@@ -219,7 +217,7 @@ These checks run locally through pre-commit/pre-push hooks and in GitLab CI.
 
 The GitLab pipeline includes:
 
-- `lint`
+- `quality`
 - `format`
 - `type_check`
 - `security`
