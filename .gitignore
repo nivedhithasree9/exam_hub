@@ -1,6 +1,7 @@
 **/node_modules/
 .env
 .venv/
+.uv-ci-venv/
 .uv-verify-venv/
 .agents/
 __pycache__/
