@@ -1,5 +1,5 @@
 stages:
-  - quality
+  - lint
   - format
   - type_check
   - security
@@ -27,8 +27,8 @@ before_script:
     }
   - uv sync --frozen --group dev --no-install-project
 
-quality:
-  stage: quality
+lint:
+  stage: lint
   script:
     - uv run ruff check .
 
@@ -40,6 +40,7 @@ format:
 type_check:
   stage: type_check
   script:
+    - uv run mypy app.py exam_hub_adk tests scripts
     - uv run ty check app.py exam_hub_adk tests scripts
 
 test:

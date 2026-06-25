@@ -22,6 +22,7 @@ ruff check .
 ruff format --check .
 uv run ruff check .
 uv run ruff format --check .
+uv run mypy app.py exam_hub_adk tests scripts
 uv run ty check
 uv run pip-audit
 pytest --cov=. --cov-report=term --cov-fail-under=70

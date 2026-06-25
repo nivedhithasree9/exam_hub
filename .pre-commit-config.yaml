@@ -19,7 +19,7 @@ repos:
 
   - repo: local
     hooks:
-      - id: ruff-check
+      - id: ruff
         name: ruff check
         entry: uv run --frozen ruff check
         language: system
@@ -32,6 +32,12 @@ repos:
       - id: ty
         name: ty
         entry: uv run --frozen ty check app.py exam_hub_adk tests scripts
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: mypy
+        name: mypy
+        entry: uv run --frozen mypy app.py exam_hub_adk tests scripts
         language: system
         pass_filenames: false
         stages: [pre-push]
