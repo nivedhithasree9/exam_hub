@@ -7,7 +7,7 @@ from os import environ, getenv
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, quote_plus, urlencode
+from urllib.parse import quote, quote_plus, urlencode, urlparse
 from urllib.request import Request, urlopen
 from uuid import uuid4
 
@@ -159,7 +159,7 @@ def render_free_ai_assistant(exam):  # pragma: no cover
             prompt = build_ai_prompt(exam, student_goal)
             with st.spinner("Asking Free AI..."):
                 answer = ask_free_ai(prompt)
-        except (HTTPError, URLError, TimeoutError, OSError):
+        except (HTTPError, URLError, TimeoutError, OSError, ValueError):
             st.info("Free cloud AI is busy, so Exam Hub generated a built-in answer.")
             answer = build_local_study_response(exam, student_goal)
 
@@ -174,7 +174,7 @@ def render_free_ai_assistant(exam):  # pragma: no cover
 def ask_no_key_assistant(exam, student_goal):
     try:
         return ask_free_ai(build_ai_prompt(exam, student_goal))
-    except (HTTPError, URLError, TimeoutError, OSError):
+    except (HTTPError, URLError, TimeoutError, OSError, ValueError):
         return build_local_study_response(exam, student_goal)
 
 
@@ -2049,7 +2049,7 @@ def translate_text(text, language_code="en"):
     )
     url = f"https://translate.googleapis.com/translate_a/single?{query}"
     try:
-        with urlopen(url, timeout=4) as response:  # nosec B310 - fixed HTTPS translation endpoint.
+        with urlopen(url, timeout=4) as response:  # nosec B310
             payload = loads(response.read().decode("utf-8"))
         translated = "".join(part[0] for part in payload[0] if part and part[0])
         return translated or text
@@ -3525,7 +3525,15 @@ def build_local_exam_answer(exam, student_goal):
     return ""
 
 
+def require_http_url(url):
+    parsed_url = urlparse(url)
+    if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
+        raise ValueError("AI provider endpoints must use http or https URLs.")
+    return url
+
+
 def post_json(url, payload, headers=None, timeout=45):
+    url = require_http_url(url)
     data = dumps(payload).encode("utf-8")
     request = Request(
         url,
@@ -3533,7 +3541,7 @@ def post_json(url, payload, headers=None, timeout=45):
         headers={"Content-Type": "application/json", **(headers or {})},
         method="POST",
     )
-    with urlopen(request, timeout=timeout) as response:
+    with urlopen(request, timeout=timeout) as response:  # nosec B310
         return loads(response.read().decode("utf-8"))
 
 
@@ -3574,9 +3582,10 @@ def ask_free_ai(prompt):
             "system": "You are a concise, careful exam preparation assistant.",
         }
     )
-    url = f"{DEFAULT_FREE_AI_URL.rstrip('/')}/{quote(prompt, safe='')}?{query}"
+    base_url = require_http_url(DEFAULT_FREE_AI_URL.rstrip("/"))
+    url = f"{base_url}/{quote(prompt, safe='')}?{query}"
     request = Request(url, headers={"User-Agent": "ExamHub/1.0"}, method="GET")
-    with urlopen(request, timeout=60) as response:
+    with urlopen(request, timeout=60) as response:  # nosec B310
         return response.read().decode("utf-8", errors="replace").strip()
 
 
@@ -3735,7 +3744,6 @@ def render_ai_assistant(exam):  # pragma: no cover
 
     # Initialize variables so pylint knows they always exist
     endpoint = ""
-    token = ""
     model = ""
 
     if provider == AI_PROVIDER_GEMINI:
@@ -3761,7 +3769,6 @@ def render_ai_assistant(exam):  # pragma: no cover
             value="llama3.2",
             key=f"ollama_model_{exam['id']}",
         )
-        token = ""
 
     student_goal = st.text_area(
         "What should AI help with?",
@@ -3772,8 +3779,8 @@ def render_ai_assistant(exam):  # pragma: no cover
     if st.button("Generate AI guidance", key=f"ai_generate_{exam['id']}", type="primary"):
         try:
             with st.spinner("Asking AI..."):
-                answer = ask_ai(provider, endpoint, token, model, exam, student_goal)
-        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError) as exc:
+                answer = ask_ai(provider, endpoint, "", model, exam, student_goal)
+        except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError, ValueError) as exc:
             if provider == AI_PROVIDER_OLLAMA:
                 st.info(format_ai_error(provider, endpoint, exc))
                 answer = ask_no_key_assistant(exam, student_goal)

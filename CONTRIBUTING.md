@@ -24,6 +24,7 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy app.py exam_hub_adk tests scripts
 uv run ty check
+uv run bandit -c pyproject.toml -r app.py exam_hub_adk scripts
 uv run pip-audit
 pytest --cov=. --cov-report=term --cov-fail-under=70
 ```

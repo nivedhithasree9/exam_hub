@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+  "bandit",
   "mypy",
   "pip-audit",
   "pre-commit",
@@ -48,6 +49,10 @@ files = ["app.py", "exam_hub_adk", "tests", "scripts"]
 ignore_missing_imports = true
 check_untyped_defs = false
 warn_unused_configs = true
+
+[tool.bandit]
+exclude_dirs = [".git", ".venv", ".uv-ci-venv", ".uv-verify-venv", ".specify", "tests"]
+skips = ["B101"]
 
 [tool.pytest.ini_options]
 addopts = "--cov=. --cov-report=term --cov-fail-under=70 --basetemp=.pytest-run-tmp"

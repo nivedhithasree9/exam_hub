@@ -62,3 +62,8 @@ secret_scan:
         Write-Warning "gitleaks did not complete cleanly on this Windows shell runner; see output above."
         exit 0
       }
+
+static_analysis:
+  stage: security
+  script:
+    - uv run bandit -c pyproject.toml -r app.py exam_hub_adk scripts

@@ -47,6 +47,12 @@ repos:
         language: system
         types: [python]
         stages: [pre-push]
+      - id: bandit
+        name: bandit
+        entry: uv run --frozen bandit -c pyproject.toml -r app.py exam_hub_adk scripts
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
       - id: pytest
         name: pytest
         entry: uv run --frozen python scripts/run_pytest.py
