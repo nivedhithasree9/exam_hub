@@ -22,7 +22,7 @@ before_script:
   - uv sync --frozen --group dev --no-install-project
 
 after_script:
-  - Remove-Item -Recurse -Force -LiteralPath $env:UV_PROJECT_ENVIRONMENT,$env:UV_CACHE_DIR -ErrorAction SilentlyContinue
+  - Remove-Item -Recurse -Force -LiteralPath ".uv-ci-venv-$env:CI_JOB_ID",".uv-cache-$env:CI_JOB_ID" -ErrorAction SilentlyContinue
 
 lint:
   stage: lint
@@ -47,12 +47,12 @@ type_check:
 test:
   stage: test
   script:
-    - uv run pytest --import-mode=importlib
+    - uv run pytest --import-mode=importlib tests
 
 coverage:
   stage: coverage
   script:
-    - uv run pytest --import-mode=importlib --cov=. --cov-report=term --cov-fail-under=70
+    - uv run pytest --import-mode=importlib tests --cov=. --cov-report=term --cov-fail-under=70
 
 secret_scan:
   stage: secret_scan

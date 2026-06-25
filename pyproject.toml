@@ -116,6 +116,8 @@ norecursedirs = [
   ".ruff_cache",
   ".specify",
   ".uv-cache",
+  ".uv-cache-*",
   ".uv-verify-venv",
   ".venv",
+  ".uv-ci-venv-*",
 ]
