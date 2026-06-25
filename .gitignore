@@ -9,8 +9,10 @@ __pycache__/
 *.pyc
 .coverage
 .uv-cache/
+.uv-cache-*/
 .pip-audit-cache/
 .pytest-tmp/
 .pytest-run-tmp/
 builds/
+.uv-ci-venv-*/
 exam_hub_adk/.adk_memory/

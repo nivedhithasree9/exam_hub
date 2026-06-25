@@ -7,25 +7,21 @@ stages:
   - coverage
 
 variables:
-  UV_CACHE_DIR: .uv-cache
   UV_LINK_MODE: copy
-  UV_PROJECT_ENVIRONMENT: .uv-ci-venv
-
-cache:
-  key:
-    files:
-      - uv.lock
-  paths:
-    - .uv-cache/
 
 before_script:
   - $env:Path = "C:\GitLab-Runner\bin;$env:Path"
+  - $env:UV_CACHE_DIR = ".uv-cache-$env:CI_JOB_ID"
+  - $env:UV_PROJECT_ENVIRONMENT = ".uv-ci-venv-$env:CI_JOB_ID"
   - |
     if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
       Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
       $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
     }
   - uv sync --frozen --group dev --no-install-project
+
+after_script:
+  - Remove-Item -Recurse -Force -LiteralPath $env:UV_PROJECT_ENVIRONMENT,$env:UV_CACHE_DIR -ErrorAction SilentlyContinue
 
 lint:
   stage: lint
