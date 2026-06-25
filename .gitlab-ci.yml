@@ -2,6 +2,7 @@ stages:
   - lint
   - format
   - type_check
+  - secret_scan
   - security
   - test
   - coverage
@@ -54,7 +55,7 @@ coverage:
     - uv run pytest --import-mode=importlib --cov=. --cov-report=term --cov-fail-under=70
 
 secret_scan:
-  stage: security
+  stage: secret_scan
   script:
     - |
       & "C:\GitLab-Runner\bin\gitleaks.exe" detect --source . --no-banner --redact --exit-code 1
