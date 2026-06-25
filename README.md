@@ -21,7 +21,7 @@ The project is built for students who want to compare exam options quickly befor
 - Streamlit
 - Google Agent Development Kit
 - Pytest and pytest-cov
-- Ruff, mypy, and ty for linting, formatting, and type checking
+- Ruff, Flake8, Pylint, Vulture, Pyupgrade, mypy, and ty for linting, formatting, quality, and type checking
 - Bandit, Semgrep, Gitleaks, pip-audit
 - Pre-commit and pre-push hooks
 - GitLab CI
@@ -205,6 +205,7 @@ Coverage is enforced in `pyproject.toml`:
 The project uses:
 
 - `ruff` for linting, import sorting, formatting checks, modernization rules, and code quality.
+- `flake8`, `pylint`, `vulture`, and `pyupgrade` for compatibility with standard Python quality scans.
 - `mypy` and `ty` for type checking.
 - `bandit` and `semgrep` for static security checks.
 - `gitleaks` for secret scanning.

@@ -11,13 +11,17 @@ dependencies = [
 [dependency-groups]
 dev = [
   "bandit",
+  "flake8",
   "mypy",
   "pip-audit",
   "pre-commit",
+  "pylint",
   "pytest",
   "pytest-cov",
+  "pyupgrade",
   "ruff",
   "ty",
+  "vulture",
 ]
 
 [tool.ruff]
@@ -53,6 +57,51 @@ warn_unused_configs = true
 [tool.bandit]
 exclude_dirs = [".git", ".venv", ".uv-ci-venv", ".uv-verify-venv", ".specify", "tests"]
 skips = ["B101"]
+
+[tool.pylint.main]
+ignore-paths = [
+  "^\\.git/",
+  "^\\.specify/",
+  "^\\.venv/",
+  "^\\.uv-ci-venv/",
+  "^\\.uv-verify-venv/",
+]
+jobs = 0
+py-version = "3.12"
+
+[tool.pylint.messages_control]
+disable = [
+  "duplicate-code",
+  "broad-exception-caught",
+  "consider-using-in",
+  "cyclic-import",
+  "import-error",
+  "import-outside-toplevel",
+  "line-too-long",
+  "missing-class-docstring",
+  "missing-function-docstring",
+  "missing-module-docstring",
+  "mixed-line-endings",
+  "protected-access",
+  "too-many-arguments",
+  "too-many-branches",
+  "too-many-lines",
+  "too-many-locals",
+  "too-many-positional-arguments",
+  "too-many-return-statements",
+  "too-many-statements",
+  "use-maxsplit-arg",
+]
+
+[tool.pylint.reports]
+score = false
+
+[tool.vulture]
+exclude = [".git/", ".specify/", ".venv/", ".uv-ci-venv/", ".uv-verify-venv/"]
+ignore_decorators = ["@st.cache_data"]
+min_confidence = 100
+paths = ["app.py", "exam_hub_adk", "scripts", "tests"]
+sort_by_size = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=. --cov-report=term --cov-fail-under=70 --basetemp=.pytest-run-tmp"

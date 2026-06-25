@@ -21,7 +21,11 @@ Use these commands before submitting changes:
 ruff check .
 ruff format --check .
 uv run ruff check .
+uv run flake8 app.py exam_hub_adk scripts tests
+uv run pylint app.py exam_hub_adk scripts tests
+uv run vulture
 uv run ruff format --check .
+uv run pyupgrade --py312-plus app.py exam_hub_adk/__init__.py exam_hub_adk/agent.py exam_hub_adk/tools.py scripts/check_compliance.py scripts/run_pytest.py tests/test_app.py
 uv run mypy app.py exam_hub_adk tests scripts
 uv run ty check
 uv run bandit -c pyproject.toml -r app.py exam_hub_adk scripts

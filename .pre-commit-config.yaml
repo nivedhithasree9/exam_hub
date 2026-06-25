@@ -24,9 +24,31 @@ repos:
         entry: uv run --frozen ruff check
         language: system
         types: [python]
+      - id: flake8
+        name: flake8
+        entry: uv run --frozen flake8 app.py exam_hub_adk scripts tests
+        language: system
+        pass_filenames: false
+      - id: pylint
+        name: pylint
+        entry: uv run --frozen pylint app.py exam_hub_adk scripts tests
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+      - id: vulture
+        name: vulture
+        entry: uv run --frozen vulture
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
       - id: ruff-format
         name: ruff format
         entry: uv run --frozen ruff format --check
+        language: system
+        types: [python]
+      - id: pyupgrade
+        name: pyupgrade
+        entry: uv run --frozen pyupgrade --py312-plus
         language: system
         types: [python]
       - id: ty

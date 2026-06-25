@@ -31,11 +31,15 @@ lint:
   stage: lint
   script:
     - uv run ruff check .
+    - uv run flake8 app.py exam_hub_adk scripts tests
+    - uv run pylint app.py exam_hub_adk scripts tests
+    - uv run vulture
 
 format:
   stage: format
   script:
     - uv run ruff format --check .
+    - uv run pyupgrade --py312-plus app.py exam_hub_adk/__init__.py exam_hub_adk/agent.py exam_hub_adk/tools.py scripts/check_compliance.py scripts/run_pytest.py tests/test_app.py
 
 type_check:
   stage: type_check
