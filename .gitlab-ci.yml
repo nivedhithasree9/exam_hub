@@ -10,6 +10,10 @@ stages:
 variables:
   UV_LINK_MODE: copy
 
+default:
+  tags:
+    - exam_hub
+
 before_script:
   - $env:Path = "C:\GitLab-Runner\bin;$env:Path"
   - $env:UV_CACHE_DIR = ".uv-cache-$env:CI_JOB_ID"
