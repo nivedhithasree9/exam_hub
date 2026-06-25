@@ -66,7 +66,7 @@ ignore-paths = [
   "^\\.uv-ci-venv/",
   "^\\.uv-verify-venv/",
 ]
-jobs = 0
+jobs = 1
 py-version = "3.12"
 
 [tool.pylint.messages_control]

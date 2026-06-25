@@ -31,8 +31,20 @@ lint:
   stage: lint
   script:
     - uv run ruff check .
+
+flake8:
+  stage: lint
+  script:
     - uv run flake8 app.py exam_hub_adk scripts tests
+
+pylint:
+  stage: lint
+  script:
     - uv run pylint app.py exam_hub_adk scripts tests
+
+vulture:
+  stage: lint
+  script:
     - uv run vulture
 
 format:
