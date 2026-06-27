@@ -172,6 +172,19 @@ def test_local_ollama_endpoint_detection():
     assert not app.is_local_ollama_endpoint("https://ollama.example.com/api/chat")
 
 
+def test_public_streamlit_uses_builtin_for_local_ollama():
+    assert app.is_public_streamlit_host("examapp-6nvasonb4gwoce42k5euqh.streamlit.app")
+    assert app.should_use_builtin_for_ollama(
+        "http://localhost:11434/api/chat",
+        "examapp-6nvasonb4gwoce42k5euqh.streamlit.app",
+    )
+    assert not app.should_use_builtin_for_ollama("http://localhost:11434/api/chat", "localhost:8501")
+    assert not app.should_use_builtin_for_ollama(
+        "https://ollama.example.com/api/chat",
+        "examapp-6nvasonb4gwoce42k5euqh.streamlit.app",
+    )
+
+
 def test_load_local_env_sets_missing_values_only(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text("EXAM_HUB_TEST_KEY=from-file\nEXAM_HUB_EXISTING=from-file\n", encoding="utf-8")

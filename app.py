@@ -3690,6 +3690,26 @@ def is_local_ollama_endpoint(endpoint):
     return (host or "").lower() in LOCAL_OLLAMA_HOSTS
 
 
+def is_public_streamlit_host(host):
+    hostname = (host or "").split(":", 1)[0].lower()
+    return hostname.endswith(".streamlit.app")
+
+
+def should_use_builtin_for_ollama(endpoint, request_host=""):
+    return is_local_ollama_endpoint(endpoint) and is_public_streamlit_host(request_host)
+
+
+def get_streamlit_request_host():  # pragma: no cover
+    try:
+        headers = st.context.headers
+    except (AttributeError, RuntimeError):
+        return ""
+    try:
+        return headers.get("host", "")
+    except AttributeError:
+        return ""
+
+
 def ask_ai(provider, endpoint, _token, model, exam, student_goal):
     prompt = build_ai_prompt(exam, student_goal)
     if provider == AI_PROVIDER_OLLAMA:
@@ -3756,6 +3776,7 @@ def render_ai_assistant(exam):  # pragma: no cover
     # Initialize variables so pylint knows they always exist
     endpoint = ""
     model = ""
+    request_host = get_streamlit_request_host()
 
     if provider == AI_PROVIDER_GEMINI:
         render_gemini_assistant(exam)
@@ -3785,6 +3806,8 @@ def render_ai_assistant(exam):  # pragma: no cover
                 "Ollama works offline when this Streamlit app runs on the same machine or Docker host as Ollama. "
                 "A Streamlit Cloud app cannot reach your laptop's localhost Ollama server."
             )
+        if should_use_builtin_for_ollama(endpoint, request_host):
+            st.caption("Public app mode: this will use built-in exam guidance for every visitor.")
 
     student_goal = st.text_area(
         "What should AI help with?",
@@ -3793,6 +3816,15 @@ def render_ai_assistant(exam):  # pragma: no cover
     )
 
     if st.button("Generate AI guidance", key=f"ai_generate_{exam['id']}", type="primary"):
+        if provider == AI_PROVIDER_OLLAMA and should_use_builtin_for_ollama(endpoint, request_host):
+            st.info("Using built-in exam guidance because the public app cannot reach a visitor's local Ollama.")
+            answer = build_local_study_response(exam, student_goal)
+            if answer:
+                st.markdown(answer)
+            else:
+                st.warning("The AI provider returned an empty response.")
+            return
+
         try:
             with st.spinner("Asking AI..."):
                 answer = ask_ai(provider, endpoint, "", model, exam, student_goal)
