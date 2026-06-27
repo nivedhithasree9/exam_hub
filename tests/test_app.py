@@ -166,6 +166,12 @@ def test_ollama_default_endpoint_matches_env_example():
     assert app.DEFAULT_OLLAMA_URL == "http://localhost:11434/api/chat"
 
 
+def test_local_ollama_endpoint_detection():
+    assert app.is_local_ollama_endpoint("http://localhost:11434/api/chat")
+    assert app.is_local_ollama_endpoint("http://host.docker.internal:11434/api/chat")
+    assert not app.is_local_ollama_endpoint("https://ollama.example.com/api/chat")
+
+
 def test_load_local_env_sets_missing_values_only(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text("EXAM_HUB_TEST_KEY=from-file\nEXAM_HUB_EXISTING=from-file\n", encoding="utf-8")
@@ -348,3 +354,6 @@ def test_format_ai_error_explains_ollama_address_failure():
 
     assert "Could not connect to Ollama" in message
     assert "ollama run llama3.2" in message
+    assert "Streamlit Cloud" in message
+    assert "localhost" in message
+    assert "offline AI" in message

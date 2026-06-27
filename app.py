@@ -45,6 +45,7 @@ DEFAULT_GEMINI_MODEL = getenv("GEMINI_MODEL", "gemini-3.5-flash")
 DEFAULT_ADK_MODEL = getenv("EXAM_HUB_ADK_MODEL", "gemini-flash-latest")
 DEFAULT_FREE_AI_URL = getenv("FREE_AI_ENDPOINT", "https://text.pollinations.ai")
 DEFAULT_OLLAMA_URL = getenv("OLLAMA_ENDPOINT") or getenv("OLLAMA_CHAT_ENDPOINT", "http://localhost:11434/api/chat")
+LOCAL_OLLAMA_HOSTS = ("localhost", "127.0.0.1", "0.0.0.0", "::1", "host.docker.internal")
 
 # Helpful links (used in the UI)
 GEMINI_API_KEYS_URL = "https://aistudio.google.com/apikey"
@@ -3681,6 +3682,14 @@ def ask_ollama(endpoint, model, prompt):
     return result.get("message", {}).get("content") or result.get("response", "")
 
 
+def is_local_ollama_endpoint(endpoint):
+    try:
+        host = urlparse(endpoint).hostname
+    except (TypeError, ValueError):
+        return False
+    return (host or "").lower() in LOCAL_OLLAMA_HOSTS
+
+
 def ask_ai(provider, endpoint, _token, model, exam, student_goal):
     prompt = build_ai_prompt(exam, student_goal)
     if provider == AI_PROVIDER_OLLAMA:
@@ -3696,6 +3705,8 @@ def format_ai_error(provider, endpoint, exc):
         return (
             "Could not connect to Ollama. Start Ollama on this machine, run "
             "`ollama pull llama3.2` or `ollama run llama3.2`, then try again. "
+            "On Streamlit Cloud, `localhost` means the cloud server, not your laptop. "
+            "For offline AI, run this Streamlit app on the same computer as Ollama. "
             "If the app is running in Docker, use `http://host.docker.internal:11434/api/chat` "
             "as the Ollama endpoint."
         )
@@ -3769,6 +3780,11 @@ def render_ai_assistant(exam):  # pragma: no cover
             value="llama3.2",
             key=f"ollama_model_{exam['id']}",
         )
+        if is_local_ollama_endpoint(endpoint):
+            st.caption(
+                "Ollama works offline when this Streamlit app runs on the same machine or Docker host as Ollama. "
+                "A Streamlit Cloud app cannot reach your laptop's localhost Ollama server."
+            )
 
     student_goal = st.text_area(
         "What should AI help with?",
@@ -3783,7 +3799,7 @@ def render_ai_assistant(exam):  # pragma: no cover
         except (HTTPError, URLError, TimeoutError, JSONDecodeError, OSError, ValueError) as exc:
             if provider == AI_PROVIDER_OLLAMA:
                 st.info(format_ai_error(provider, endpoint, exc))
-                answer = ask_no_key_assistant(exam, student_goal)
+                answer = build_local_study_response(exam, student_goal)
             else:
                 st.error(format_ai_error(provider, endpoint, exc))
                 return
