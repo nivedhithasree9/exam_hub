@@ -17,9 +17,11 @@ def test_make_book_links_generates_shopping_searches():
     assert links["Flipkart"] == "https://www.flipkart.com/search?q=GMAT+Official+Guide"
 
 
-def test_tr_uses_language_value_and_english_fallback():
+def test_tr_uses_language_value_and_translates_missing_entries(monkeypatch):
+    monkeypatch.setattr(app, "translate_text", lambda text, language_code: f"{language_code}:{text}")
+
     assert app.tr("search_exams", "hi") == "परीक्षा खोजें"
-    assert app.tr("curated_exams", "hi") == "Curated exams"
+    assert app.tr("curated_exams", "hi") == "hi:Curated exams"
 
 
 def test_translate_text_returns_english_without_translation():

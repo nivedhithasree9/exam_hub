@@ -1857,7 +1857,21 @@ UI_TEXT = {
 
 
 def tr(key, language_code="en"):
-    return UI_TEXT.get(language_code, {}).get(key, UI_TEXT["en"][key])
+    localized_text = UI_TEXT.get(language_code, {}).get(key)
+    if localized_text is not None:
+        return localized_text
+
+    english_text = UI_TEXT["en"].get(key, key)
+    return translate_text(english_text, language_code)
+
+
+def translated_option_label(option, language_code="en"):
+    return translate_text(option, language_code)
+
+
+def result_count_label(count, language_code="en"):
+    english_label = f"{count} {'result' if count == 1 else 'results'}"
+    return translate_text(english_label, language_code)
 
 
 @st.cache_data(show_spinner=False)
@@ -3025,8 +3039,8 @@ def render_detail_list(items, language_code):  # pragma: no cover
         '<div class="eh-detail-list">'
         + "".join(
             '<div class="eh-detail-item">'
-            f'<strong>{escape(translate_text(item["title"], language_code))}</strong>'
-            f'<span>{escape(translate_text(item["detail"], language_code))}</span>'
+            f"<strong>{escape(translate_text(item['title'], language_code))}</strong>"
+            f"<span>{escape(translate_text(item['detail'], language_code))}</span>"
             "</div>"
             for item in items
         )
@@ -3043,7 +3057,9 @@ def render_overview_checklist(exam, language_code):  # pragma: no cover
         },
         {
             "title": "Documents to keep ready",
-            "detail": "Admit card, photo ID, photographs, signature, mark sheets, and category certificate if applicable.",
+            "detail": (
+                "Admit card, photo ID, photographs, signature, mark sheets, and category certificate if applicable."
+            ),
         },
         {
             "title": "Before applying",
@@ -3054,10 +3070,7 @@ def render_overview_checklist(exam, language_code):  # pragma: no cover
 
 
 def render_rule_panel(title, items, class_name, language_code):  # pragma: no cover
-    translated_items = "".join(
-        f"<li>{escape(translate_text(item, language_code))}</li>"
-        for item in items
-    )
+    translated_items = "".join(f"<li>{escape(translate_text(item, language_code))}</li>" for item in items)
     return (
         '<div class="eh-rule-panel">'
         f'<div class="eh-rule-title">{escape(translate_text(title, language_code))}</div>'
@@ -3067,12 +3080,17 @@ def render_rule_panel(title, items, class_name, language_code):  # pragma: no co
 
 
 def render_exam_rules(exam, language_code):  # pragma: no cover
+    rules_note = translate_text(
+        "These are common rules for most exams. Always follow the latest official admit card and "
+        "notification for final instructions.",
+        language_code,
+    )
     st.markdown(
         f"""
         <div class="eh-overview-brief">
             <div class="eh-overview-brief-title">{escape(translate_text("Exam-day rules", language_code))}</div>
             <div class="eh-overview-brief-copy">
-                {escape(translate_text("These are common rules for most exams. Always follow the latest official admit card and notification for final instructions.", language_code))}
+                {escape(rules_note)}
             </div>
         </div>
         <div class="eh-rule-grid">
@@ -3085,12 +3103,18 @@ def render_exam_rules(exam, language_code):  # pragma: no cover
 
 
 def render_reservation_details(exam, language_code):  # pragma: no cover
+    reservation_title = translate_text("Reservation information", language_code)
+    reservation_note = translate_text(
+        "Reservation rules can change by exam, state, institution, and counselling authority. "
+        "Use this as a checklist, then confirm the exact rule in the latest official notification.",
+        language_code,
+    )
     st.markdown(
         f"""
         <div class="eh-overview-brief">
-            <div class="eh-overview-brief-title">{escape(translate_text("Reservation information", language_code))}</div>
+            <div class="eh-overview-brief-title">{escape(reservation_title)}</div>
             <div class="eh-overview-brief-copy">
-                {escape(translate_text("Reservation rules can change by exam, state, institution, and counselling authority. Use this as a checklist, then confirm the exact rule in the latest official notification.", language_code))}
+                {escape(reservation_note)}
             </div>
         </div>
         """,
@@ -3187,14 +3211,18 @@ def matches_filters(exam, query, category):
     )
     searchable_tokens = search_tokens(searchable_text)
     query_tokens = search_tokens(query)
-    query_matches = not query or query in searchable_text or all(
-        any(
-            token.startswith(query_token)
-            or query_token.startswith(token)
-            or SequenceMatcher(None, query_token, token).ratio() >= 0.74
-            for token in searchable_tokens
+    query_matches = (
+        not query
+        or query in searchable_text
+        or all(
+            any(
+                token.startswith(query_token)
+                or query_token.startswith(token)
+                or SequenceMatcher(None, query_token, token).ratio() >= 0.74
+                for token in searchable_tokens
+            )
+            for query_token in query_tokens
         )
-        for query_token in query_tokens
     )
     category_matches = category == "All categories" or exam["category"] == category
     return query_matches and category_matches
@@ -3382,8 +3410,9 @@ def main():  # pragma: no cover
                 """,
                 unsafe_allow_html=True,
             )
+            current_language_code = LANGUAGES[st.session_state.language_name]
             language_name = st.selectbox(
-                "Language",
+                tr("language", current_language_code),
                 list(LANGUAGES),
                 index=list(LANGUAGES).index(st.session_state.language_name),
                 key="language_name",
@@ -3398,7 +3427,11 @@ def main():  # pragma: no cover
     with search_col:
         query = st.text_input(tr("search_exams", language_code), placeholder="GMAT, NEET, UPSC, JEE").strip().lower()
     with category_col:
-        category = st.selectbox(tr("category", language_code), categories)
+        category = st.selectbox(
+            tr("category", language_code),
+            categories,
+            format_func=lambda option: translated_option_label(option, language_code),
+        )
     st.markdown("</div>", unsafe_allow_html=True)
 
     filtered_exams = [exam for exam in exams if matches_filters(exam, query, category)]
@@ -3421,7 +3454,7 @@ def main():  # pragma: no cover
                 ):
                     st.session_state.selected_exam_id = exam["id"]
 
-    st.caption(f"{len(filtered_exams)} {tr('results', language_code)}{'s' if len(filtered_exams) != 1 else ''}")
+    st.caption(result_count_label(len(filtered_exams), language_code))
     if not filtered_exams:
         st.session_state.selected_exam_id = None
         st.info(tr("no_results", language_code))
